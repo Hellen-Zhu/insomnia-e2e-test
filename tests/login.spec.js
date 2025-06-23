@@ -1,26 +1,24 @@
 const { test, expect } = require('@playwright/test');
-const { AuthPage } = require('../pages/AuthPage');
-const { GitHubLoginPage } = require('../pages/GitHubLoginPage');
-const { EmailVerificationPage } = require('../pages/EmailVerificationPage');
-const { SSOLoginPage } = require('../pages/SSOLoginPage');
+const { AuthPage, EmailVerificationPage, GitHubLoginPage, GoogleLoginPage, SSOLoginPage } = require('../pages');
 
 test.describe('Insomnia Login Flows', () => {
   let authPage;
 
   test.beforeEach(async ({ page }) => {
     authPage = new AuthPage(page);
-    await authPage.navigate();
+    await authPage.navigateToAuthPage();
   });
 
   test('Should be able to redirect to GitHub login page', async ({ page }) => {
+    const gitHubLoginPage = new GitHubLoginPage(page);
     await authPage.loginWithGitHub();
-    await expect(page).toHaveURL(/https:\/\/github\.com\/login/);
+    await gitHubLoginPage.assertOnPage();
   });
 
   test('Should be able to redirect to Google login page', async ({ page }) => {
+    const googleLoginPage = new GoogleLoginPage(page);
     await authPage.loginWithGoogle();
-    await expect(page).toHaveURL(/https:\/\/accounts\.google\.com/);
-    await expect(page.getByRole('img', { name: 'Insomnia' })).toBeVisible();
+    await googleLoginPage.assertOnPage();
   });
 
   test.describe('SSO Login', () => {
@@ -45,4 +43,6 @@ test.describe('Insomnia Login Flows', () => {
       // await expect(page).toHaveURL('/dashboard');
     });
   });
+
+
 })
