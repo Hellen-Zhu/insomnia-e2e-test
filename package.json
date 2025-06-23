@@ -1,0 +1,36 @@
+{
+  "name": "insomnia-e2e-test",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:chromium": "playwright test --project=chromium",
+    "test:firefox": "playwright test --project=firefox",
+    "test:webkit": "playwright test --project=webkit",
+    "test:smoke": "playwright test --grep \"@smoke\"",
+    "test:regression": "playwright test --grep \"@regression\"",
+    "test:ci": "playwright test --reporter=html,junit",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install",
+    "test:install-deps": "playwright install --with-deps",
+    "test:codegen": "playwright codegen",
+    "test:trace": "playwright test --trace on",
+    "test:workers": "playwright test --workers=1",
+    "test:retries": "playwright test --retries=3",
+    "test:parallel": "playwright test --workers=4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hellen-Zhu/insomnia-e2e-test.git"
+  },
+  "keywords": ["playwright", "e2e", "testing", "automation"],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "@playwright/test": "^1.53.1",
+    "@types/node": "^24.0.3",
+    "playwright": "^1.53.1"
+  }
+}
