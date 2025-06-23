@@ -9,8 +9,9 @@
     "test:firefox": "playwright test --project=firefox",
     "test:webkit": "playwright test --project=webkit",
     "test:smoke": "playwright test --grep \"@smoke\"",
-    "test:regression": "playwright test --grep \"@regression\" --project=chromium",
-    "test:report": "playwright show-report",
+    "test:regression": "playwright test --grep \"@regression\"",
+    "test:ci": "playwright test --reporter=html,junit",
+    "test:report": "playwright show-report --port 9324",
     "test:install": "playwright install",
     "test:install-deps": "playwright install --with-deps",
     "test:codegen": "playwright codegen",
@@ -23,13 +24,17 @@
     "type": "git",
     "url": "git+https://github.com/Hellen-Zhu/insomnia-e2e-test.git"
   },
-  "keywords": ["playwright", "e2e", "testing", "automation"],
+  "keywords": [
+    "playwright",
+    "e2e",
+    "testing",
+    "automation"
+  ],
   "author": "",
   "license": "ISC",
   "description": "",
   "devDependencies": {
     "@playwright/test": "^1.53.1",
-    "@types/node": "^24.0.3",
     "playwright": "^1.53.1"
   }
 }

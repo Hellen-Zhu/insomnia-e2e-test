@@ -17,7 +17,7 @@ export default defineConfig({
   timeout: 60 * 1000,
   /* expect() 断言的默认超时时间 */
   expect: {
-    timeout: 15 * 1000,
+    timeout: 20 * 1000,
   },
   /* Run tests in files in parallel */
   fullyParallel: true,

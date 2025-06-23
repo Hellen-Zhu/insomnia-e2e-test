@@ -27,19 +27,71 @@ A comprehensive end-to-end testing framework built with Playwright for testing w
 
 ## Limitations
 
+### Login Test Case Design Approach
+
+Register and Login functionality can be designed from multiple dimensions for test cases. This framework currently implements partial core functionality:
+
+#### Testable Dimensions
+
+1. **UI Interaction Testing**:
+   - ✅ Login button visibility and clickability
+   - ✅ Form field validation and error messages
+   - ✅ Page navigation and redirect functionality
+   - ✅ Responsive design and cross-browser compatibility
+
+2. **Functional Flow Testing**:
+   - ✅ Login form submission
+   - ✅ OAuth redirect validation
+   - ❌ Actual authentication flow (limited by security restrictions)
+   - ❌ Login state persistence
+   - ❌ Logout functionality
+
+3. **Security Testing**:
+   - ❌ Password strength validation
+   - ❌ CSRF token validation
+   - ❌ Session management
+
+4. **Boundary Condition Testing**:
+   - ❌ Invalid credentials handling
+   - ❌ Network exception handling
+   - ❌ Concurrent login restrictions
+   - ❌ Account lockout mechanisms
+
+5. **Integration Testing**:
+   - ❌ Backend API integration
+   - ❌ Database state validation
+   - ❌ Third-party service integration
+
+#### Current Implementation Scope
+
+This framework focuses on **UI-level automated testing**, primarily validating:
+- Page elements render correctly
+- User interactions respond normally
+- Navigation flows meet expectations
+- Redirect functionality works properly
+
+Due to OAuth security mechanisms and third-party service limitations, complete end-to-end authentication testing cannot be implemented.
+
 ### Authentication Testing Limitations
 
-1. **Google/GitHub Login**: 
+1. **GitHub Login**: 
    - Only validates redirection to respective login interfaces
    - Cannot perform actual authentication due to OAuth limitations and security restrictions
    - Tests focus on UI navigation and redirect functionality
 
-2. **SSO Login**: 
+2. **Google Login**: 
+   - Validates redirection to Google OAuth interface
+   - Cannot perform actual Google authentication due to OAuth 2.0 security restrictions
+   - Tests focus on UI navigation and redirect functionality
+   - Google's OAuth flow requires user interaction and cannot be fully automated
+   - Limited to verifying the login button redirects to correct Google OAuth URL
+
+3. **SSO Login**: 
    - Demo implementation with simplified test cases
    - Limited to basic SSO flow demonstration
    - Not comprehensive for all SSO provider scenarios
 
-3. **Email Verification**: 
+4. **Email Verification**: 
    - Cannot test actual email verification due to third-party CAPTCHA and email verification code requirements
    - Limited to UI interaction testing without real email delivery validation
    - Human verification steps cannot be automated

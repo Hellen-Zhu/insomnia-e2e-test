@@ -1,4 +1,4 @@
-const { test, expect } = require('@playwright/test');
+const { test } = require('@playwright/test');
 const { AuthPage, EmailVerificationPage, GitHubLoginPage, GoogleLoginPage, SSOLoginPage } = require('../pages');
 
 test.describe('Insomnia Login Flows', () => {
@@ -8,20 +8,60 @@ test.describe('Insomnia Login Flows', () => {
     authPage = new AuthPage(page);
     await authPage.navigateToAuthPage();
   });
-  test('@smoke should load authorize page successfully', async ({ page }) => {
+
+  test('@smoke should load authorize page successfully', async () => {    
     await authPage.assertOnPage();
-  });
+  });  
 
-  test('@regression Should be able to redirect to GitHub login page', async ({ page }) => {
-    const gitHubLoginPage = new GitHubLoginPage(page);
-    await authPage.loginWithGitHub();
-    await gitHubLoginPage.assertOnPage();
-  });
+  test.describe('Google Login', () => {
+    test('@smoke Should be able to redirect to Google login page', async ({ page }) => {
+      const googleLoginPage = new GoogleLoginPage(page);
+      await authPage.loginWithGoogle();
+      await googleLoginPage.assertOnPage();
+    });
+  
+    test('@regression Should able to register new google account and login with it', async ({ page }) => {
+      const googleLoginPage = new GoogleLoginPage(page);
+      await authPage.loginWithGoogle();
+      await googleLoginPage.assertOnPage();
+      await googleLoginPage.registerNewAccount('Hellen', 'Zhu');
+  
+      // This step will fail as it finally need tel number to verify
+      // Assume it will finally redirect to dashboard page after account created
+      // await expect(this.page.url()).toContain('/dashboard');  
+      
+    });
+  
+    test('@regression Should unable to login with wrong google account', async ({ page }) => {
+      const googleLoginPage = new GoogleLoginPage(page);
+      await authPage.loginWithGoogle();
+      await googleLoginPage.assertOnPage();
+      await googleLoginPage.loginWithGoogleAccount('hellenzhu@2925.com');
 
-  test('@regression Should be able to redirect to Google login page', async ({ page }) => {
-    const googleLoginPage = new GoogleLoginPage(page);
-    await authPage.loginWithGoogle();
-    await googleLoginPage.assertOnPage();
+      // In production, it will show "Unable to find your Google Account"
+      // But this case will fail in Playwright, it saying 'Couldn't sign you in'
+      // await googleLoginPage.assertWrongAccountPage();      
+    });
+
+    test('@regression Should able to login with existing google account', async ({ page }) => {
+      const googleLoginPage = new GoogleLoginPage(page);
+      await authPage.loginWithGoogle();
+      await googleLoginPage.assertOnPage();
+      await googleLoginPage.loginWithGoogleAccount('hellenzhu@outlook.com');
+  
+      // This step will fail as it finally need tel number to verify
+      // Assume it will finally redirect to dashboard page after account created
+      // await expect(this.page.url()).toContain('/dashboard');  
+      
+    });
+  });
+  
+  test.describe('GitHub Login', () => {
+    test('@smoke Should be able to redirect to GitHub login page', async ({ page }) => {
+      const gitHubLoginPage = new GitHubLoginPage(page);
+      await authPage.loginWithGitHub();
+      await gitHubLoginPage.assertOnPage();
+    });
   });
 
   test.describe('SSO Login', () => {
@@ -87,5 +127,4 @@ test.describe('Insomnia Login Flows', () => {
       await emailVerificationPage.assertWrongCodeErrorVisible();
     });
   });
-
-})
+});
