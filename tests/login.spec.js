@@ -32,17 +32,57 @@ test.describe('Insomnia Login Flows', () => {
     });
 
     test('Should be unable to login with wrong passcode', async () => {
-      await ssoLoginPage.loginWithWrongPasscode(ssoUserEmail, '123456', false);
+      await ssoLoginPage.loginWithSSO(ssoUserEmail, '123456', false);
+      await ssoLoginPage.assertErrorAlertVisible();
     });
 
     test('Should be able to login with right passcode', async ({ page }) => {
       // TODO: need to get the right password for the user
-      await ssoLoginPage.loginWithRightPasscode(ssoUserEmail, 'password', true);
+      await ssoLoginPage.loginWithSSO(ssoUserEmail, 'password', true);
 
       // Assume the login is successful and the user is redirected to the dashboard
       // await expect(page).toHaveURL('/dashboard');
     });
   });
 
+  test.describe('Email Login', () => {
+    let emailVerificationPage;
+
+    test.beforeEach(async ({ page }) => {
+      emailVerificationPage = new EmailVerificationPage(page);
+    });
+
+    test('Should able to login with new email account', async () => {
+      const newUserEmail = 'hellenzhu2@2925.com';
+      await authPage.loginWithEmail(newUserEmail);
+      
+      // This step will fail as unable to bypass the cloudflare captcha
+      // In UAT/DEV, may need developers to help bypass the captcha
+      // await emailVerificationPage.assertOnPage(newUserEmail);
+      
+      // await emailVerificationPage.enterVerificationCode('123456');
+
+       // Assume the login is successful and the user is redirected to the dashboard
+      // await expect(page).toHaveURL('/dashboard');
+    });
+
+    test('Should be able to login with right passcode', async () => {
+      const existingUserEmail = 'hellenzhu@2925.com';
+      await authPage.loginWithEmail(existingUserEmail);
+      await emailVerificationPage.assertOnPage(existingUserEmail);
+      await emailVerificationPage.enterVerificationCode('123456');
+
+      // Assume the login is successful and the user is redirected to the dashboard
+      // await expect(page).toHaveURL('/dashboard');
+    });
+
+    test('Should be unable to login with wrong passcode', async () => {
+      const existingUserEmail = 'hellenzhu@2925.com';
+      await authPage.loginWithEmail(existingUserEmail);
+      await emailVerificationPage.assertOnPage(existingUserEmail);
+      await emailVerificationPage.enterVerificationCode('000000');
+      await emailVerificationPage.assertWrongCodeErrorVisible();
+    });
+  });
 
 })
