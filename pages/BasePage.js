@@ -71,6 +71,20 @@ class BasePage {
   }
 
   /**
+   * Wait for response status
+   * @param {string} url - URL pattern to wait for
+   * @param {string} selector - Selector to wait for
+   * @param {number} status - Expected status code
+   */
+  async waitForResponseStatus(url, selector, status) {
+    await this.page.route(url, route => route.continue());    
+    const responsePromise = this.page.waitForResponse(url);
+    await this.clickElement(selector); 
+    const response = await responsePromise;
+    expect(response.status()).toBe(status);
+  }
+
+  /**
    * Assert URL matches pattern
    * @param {string|RegExp} url - URL pattern to assert
    */

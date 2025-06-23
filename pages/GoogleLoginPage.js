@@ -12,6 +12,11 @@ class GoogleLoginPage extends BasePage {
     this.forgotEmailButton = page.getByRole('button', { name: 'Forgot email?' });
     this.createAccountButton = page.getByRole('button', { name: 'Create account' });
     this.nextButton = page.getByRole('button', { name: 'Next' });
+    this.firstNameInput = page.getByRole('textbox', { name: 'First name' });
+    this.lastNameInput = page.getByRole('textbox', { name: 'Last name' });
+    this.registerPage = page.getByText('Create a Google Account', { exact: true });
+    this.birthdayGenderPage = page.getByText('Enter your birthday and gender', { exact: true });
+    this.unableToFindAccount = page.getByText('Unable to find your Google Account', { exact: true });
   }
 
   /**
@@ -100,6 +105,17 @@ class GoogleLoginPage extends BasePage {
   }
 
   /**
+   * Asserts that the unable sign in page is visible.
+   */
+  async assertWrongAccountPage() {
+    try {
+      await this.assertElementVisible(this.unableToFindAccount);
+      
+    } catch (error) {
+      await this.handleError(error, 'GoogleLoginPage.assertUnableSignInPage');
+    }
+  }
+  /**
    * Waits for the page to load completely.
    */
   async waitForPageLoad() {
@@ -108,6 +124,44 @@ class GoogleLoginPage extends BasePage {
       await this.assertElementVisible(this.logo);
     } catch (error) {
       await this.handleError(error, 'GoogleLoginPage.waitForPageLoad');
+    }
+  }
+
+  async registerNewAccount(firstName, lastName) {
+    try {
+
+      await this.waitForResponseStatus('**/flows/signup?**', this.createAccountButton, 302);  
+      await this.assertRegisterPage();
+      await this.fillElement(this.firstNameInput, firstName);
+      await this.fillElement(this.lastNameInput, lastName);
+      await this.clickElement(this.nextButton);
+      await this.assertElementVisible(this.birthdayGenderPage);
+
+      // Assume we can continue to next steps but it will fail as it finally need tel number to verify
+      // Assume it will finally redirect to dashboard page after account created
+      // await expect(this.page.url()).toContain('/dashboard');
+    } catch (error) {
+      await this.handleError(error, 'GoogleLoginPage.registerNewAccount');
+    }
+  }
+
+  async loginWithGoogleAccount(email) {
+    try {
+      await this.fillElement(this.emailInput, email);
+      await this.clickElement(this.nextButton);
+     
+    } catch (error) {
+      await this.handleError(error, 'GoogleLoginPage.loginWithNewAccount');
+    }
+  }
+  async assertRegisterPage() {
+    try {
+      await this.assertElementVisible(this.registerPage);
+      await this.assertElementVisible(this.firstNameInput);
+      await this.assertElementVisible(this.lastNameInput);
+      await this.assertElementVisible(this.nextButton);
+    } catch (error) {
+      await this.handleError(error, 'GoogleLoginPage.assertRegisterPage');
     }
   }
 }
