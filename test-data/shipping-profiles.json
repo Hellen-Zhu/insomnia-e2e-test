@@ -1,0 +1,12 @@
+{
+  "default": {
+    "firstName": "San",
+    "lastName": "Zhang",
+    "postalCode": "100000"
+  },
+  "international": {
+    "firstName": "John",
+    "lastName": "Doe",
+    "postalCode": "94105"
+  }
+}

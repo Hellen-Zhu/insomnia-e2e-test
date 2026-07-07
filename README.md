@@ -36,7 +36,9 @@ ENV=staging npm test    # 切换环境
 │   ├── components/     # 组件层：设计系统组件对象（宿主→内部元素的映射）
 │   ├── steps/          # 步骤层：Gherkin ↔ POM 的薄胶水
 │   │   └── fixtures.ts # POM 依赖注入中心
-│   └── config/         # 配置层：环境加载
+│   ├── config/         # 配置层：环境相关配置（随 ENV 变化）
+│   └── utils/          # 纯函数工具（数据加载、格式化等，与页面无关）
+├── test-data/          # 外部测试数据（JSON），Gherkin 中以业务别名引用
 ├── env/                # 各环境变量文件 (.env.dev / .env.staging ...)
 ├── playwright.config.ts
 └── .github/workflows/  # CI
@@ -113,6 +115,19 @@ export class ProfilePage extends BasePage {
 - 分层依赖方向：Page → Component → Playwright 原语；组件不感知页面，更不感知 Gherkin
 
 （注：示例站 saucedemo 的 `data-test` 直接打在原生元素上，无宿主包裹，因此示例页面对象未使用组件层。）
+
+### 数据驱动的三个层次
+
+选型标准：**业务方评审场景时需要看到这个数据吗？**
+
+| 层次 | 方式 | 适用 | 示例 |
+|---|---|---|---|
+| 1 | `Scenario Outline` + `Examples` | 数据量小且差异即业务规则 | `login.feature` 的无效凭证表 |
+| 2 | 步骤 DataTable | 单场景的结构化输入 | `checkout.feature` 的批量加购 |
+| 3 | `test-data/*.json` + 业务别名 | 数据量大或细节与业务无关 | `"default" shipping profile` |
+
+层次 3 的约定：Gherkin 里只出现**业务别名**，真实值在 `test-data/` 下的 JSON 中，
+通过 `src/utils/test-data.ts` 的类型化访问函数读取（别名不存在时报错并列出可用值）。
 
 ### 新增一个环境
 

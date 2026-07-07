@@ -1,4 +1,6 @@
+import type { DataTable } from 'playwright-bdd';
 import { env } from '../config/env';
+import { getShippingProfile } from '../utils/test-data';
 import { Given, When, Then } from './fixtures';
 
 Given('I am logged in', async ({ loginPage, inventoryPage }) => {
@@ -11,6 +13,12 @@ When('I add the product {string} to the cart', async ({ inventoryPage }, product
   await inventoryPage.addProductToCart(productName);
 });
 
+When('I add the following products to the cart:', async ({ inventoryPage }, table: DataTable) => {
+  for (const [productName] of table.raw()) {
+    await inventoryPage.addProductToCart(productName);
+  }
+});
+
 Then('the cart badge count should be {int}', async ({ inventoryPage }, count: number) => {
   await inventoryPage.expectCartBadgeCount(count);
 });
@@ -20,22 +28,20 @@ When('I open the cart', async ({ inventoryPage, cartPage }) => {
   await cartPage.expectOpened();
 });
 
-Then(
-  'the cart should contain the product {string}',
-  async ({ cartPage }, productName: string) => {
-    await cartPage.expectContainsProduct(productName);
-  },
-);
+Then('the cart should contain the product {string}', async ({ cartPage }, productName: string) => {
+  await cartPage.expectContainsProduct(productName);
+});
 
 Then('the cart should contain {int} items', async ({ cartPage }, count: number) => {
   await cartPage.expectItemCount(count);
 });
 
 When(
-  'I checkout as {string} {string} with postal code {string}',
-  async ({ cartPage, checkoutPage }, firstName: string, lastName: string, postalCode: string) => {
+  'I checkout using the {string} shipping profile',
+  async ({ cartPage, checkoutPage }, profileName: string) => {
+    const profile = getShippingProfile(profileName);
     await cartPage.startCheckout();
-    await checkoutPage.fillShippingInfo(firstName, lastName, postalCode);
+    await checkoutPage.fillShippingInfo(profile.firstName, profile.lastName, profile.postalCode);
     await checkoutPage.confirmOrder();
   },
 );
