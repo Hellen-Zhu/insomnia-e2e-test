@@ -129,6 +129,48 @@ export class ProfilePage extends BasePage {
 层次 3 的约定：Gherkin 里只出现**业务别名**，真实值在 `test-data/` 下的 JSON 中，
 通过 `src/utils/test-data.ts` 的类型化访问函数读取（别名不存在时报错并列出可用值）。
 
+### 跨步骤共享状态与数据隔离
+
+同一机制解决两件事：`src/steps/fixtures.ts` 中的 `ScenarioContext`（test 作用域 fixture）。
+
+- **共享**：步骤 A 写入 `ctx.xxx`，步骤 B 读取——每个场景内是同一个实例
+- **隔离**：场景结束实例销毁，场景之间、并行 worker 之间互不可见
+
+```ts
+When('I add the product {string} to the cart', async ({ inventoryPage, ctx }, name: string) => {
+  await inventoryPage.addProductToCart(name);
+  ctx.addedProducts.push(name);           // 写入本场景上下文
+});
+
+Then('the cart should contain all added products', async ({ cartPage, ctx }) => {
+  for (const name of ctx.addedProducts) { // 读取上一步的结果
+    await cartPage.expectContainsProduct(name);
+  }
+});
+```
+
+**红线：禁止用 steps 文件的模块级变量共享状态**——同一 worker 会串场景，并行模式下必然 flaky。
+新增共享字段时在 `ScenarioContext` 类上加类型化属性。
+
+隔离的完整层次：
+
+| 层次 | 机制 | 由谁保证 |
+|---|---|---|
+| 浏览器状态（cookie/storage） | 每个场景新建 browser context | Playwright 自动 |
+| 场景内运行时数据 | `ScenarioContext` fixture | 本框架 |
+| 后端数据（并行互踩） | 每 worker 独立账号 / 每场景唯一数据 | 接入真实业务时按需实现 |
+
+后端隔离示例（需要时启用）——worker 作用域 fixture 按 `parallelIndex` 分配账号：
+
+```ts
+account: [
+  async ({}, use, workerInfo) => {
+    await use(testAccounts[workerInfo.parallelIndex % testAccounts.length]);
+  },
+  { scope: 'worker' },
+],
+```
+
 ### 新增一个环境
 
 复制 `env/.env.example` 为 `env/.env.<名称>`，填入配置，然后 `ENV=<名称> npm test`。

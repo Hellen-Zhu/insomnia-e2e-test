@@ -9,15 +9,23 @@ Given('I am logged in', async ({ loginPage, inventoryPage }) => {
   await inventoryPage.expectOpened();
 });
 
-When('I add the product {string} to the cart', async ({ inventoryPage }, productName: string) => {
-  await inventoryPage.addProductToCart(productName);
-});
-
-When('I add the following products to the cart:', async ({ inventoryPage }, table: DataTable) => {
-  for (const [productName] of table.raw()) {
+When(
+  'I add the product {string} to the cart',
+  async ({ inventoryPage, ctx }, productName: string) => {
     await inventoryPage.addProductToCart(productName);
-  }
-});
+    ctx.addedProducts.push(productName);
+  },
+);
+
+When(
+  'I add the following products to the cart:',
+  async ({ inventoryPage, ctx }, table: DataTable) => {
+    for (const [productName] of table.raw()) {
+      await inventoryPage.addProductToCart(productName);
+      ctx.addedProducts.push(productName);
+    }
+  },
+);
 
 Then('the cart badge count should be {int}', async ({ inventoryPage }, count: number) => {
   await inventoryPage.expectCartBadgeCount(count);
@@ -34,6 +42,12 @@ Then('the cart should contain the product {string}', async ({ cartPage }, produc
 
 Then('the cart should contain {int} items', async ({ cartPage }, count: number) => {
   await cartPage.expectItemCount(count);
+});
+
+Then('the cart should contain all added products', async ({ cartPage, ctx }) => {
+  for (const productName of ctx.addedProducts) {
+    await cartPage.expectContainsProduct(productName);
+  }
 });
 
 When(

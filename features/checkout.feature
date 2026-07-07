@@ -23,3 +23,4 @@ Feature: Shopping Checkout
     Then the cart badge count should be 2
     When I open the cart
     Then the cart should contain 2 items
+    And the cart should contain all added products
