@@ -5,7 +5,7 @@
 ## 架构
 
 ```
-features/*.feature (Gherkin, 业务可读, 支持中文关键字)
+features/*.feature (Gherkin, 业务可读)
         ↓ bddgen 编译
 .features-gen/ (Playwright 原生测试, 自动生成, git 忽略)
         ↓

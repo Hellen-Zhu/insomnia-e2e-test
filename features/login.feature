@@ -1,24 +1,23 @@
-# language: zh-CN
 @login
-功能: 用户登录
-  作为一名用户
-  我希望能够登录系统
-  以便使用购物功能
+Feature: User Login
+  As a user
+  I want to log into the system
+  So that I can use the shopping features
 
-  背景:
-    假如我打开登录页
+  Background:
+    Given I am on the login page
 
   @smoke
-  场景: 使用有效凭证成功登录
-    当我使用有效凭证登录
-    那么我应该看到商品列表页
+  Scenario: Login successfully with valid credentials
+    When I login with valid credentials
+    Then I should see the products page
 
-  场景大纲: 使用无效凭证登录失败
-    当我使用用户名 "<用户名>" 和密码 "<密码>" 登录
-    那么我应该看到错误提示 "<错误信息>"
+  Scenario Outline: Login fails with invalid credentials
+    When I login with username "<username>" and password "<password>"
+    Then I should see the error message "<error_message>"
 
-    例子:
-      | 用户名          | 密码           | 错误信息                                                    |
-      | standard_user   | wrong_password | Username and password do not match                          |
-      | locked_out_user | secret_sauce   | Sorry, this user has been locked out.                       |
-      |                 | secret_sauce   | Username is required                                        |
+    Examples:
+      | username        | password       | error_message                         |
+      | standard_user   | wrong_password | Username and password do not match    |
+      | locked_out_user | secret_sauce   | Sorry, this user has been locked out. |
+      |                 | secret_sauce   | Username is required                  |
