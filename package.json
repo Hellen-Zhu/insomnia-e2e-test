@@ -1,0 +1,32 @@
+{
+  "name": "e2e-framework",
+  "version": "1.0.0",
+  "description": "Playwright + TypeScript + Cucumber (playwright-bdd) E2E 自动化测试框架，POM 模式",
+  "private": true,
+  "scripts": {
+    "test": "bddgen && playwright test",
+    "test:smoke": "bddgen --tags @smoke && playwright test",
+    "test:headed": "bddgen && playwright test --headed",
+    "test:ui": "bddgen && playwright test --ui",
+    "test:staging": "ENV=staging npm test",
+    "report": "playwright show-report reports/playwright-report",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "keywords": ["e2e", "playwright", "cucumber", "bdd", "pom"],
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.1.0",
+    "dotenv": "^17.4.2",
+    "eslint": "^10.6.0",
+    "eslint-config-prettier": "^10.1.8",
+    "playwright-bdd": "^9.2.0",
+    "prettier": "^3.9.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.63.0"
+  }
+}

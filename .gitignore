@@ -1,0 +1,10 @@
+node_modules/
+.features-gen/
+reports/
+test-results/
+playwright-report/
+*.log
+
+# 真实项目中启用以下两行，避免密钥入库（saucedemo 为公开凭证故 .env.dev 入库）
+# env/.env.*
+# !env/.env.example
