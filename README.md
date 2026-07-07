@@ -33,6 +33,7 @@ ENV=staging npm test    # 切换环境
 ├── features/           # 特性层：Gherkin 场景（业务语言）
 ├── src/
 │   ├── pages/          # 页面层：POM，封装定位器与页面行为
+│   ├── components/     # 组件层：设计系统组件对象（宿主→内部元素的映射）
 │   ├── steps/          # 步骤层：Gherkin ↔ POM 的薄胶水
 │   │   └── fixtures.ts # POM 依赖注入中心
 │   └── config/         # 配置层：环境加载
@@ -82,6 +83,36 @@ When('我保存个人资料', async ({ profilePage }) => {
   await profilePage.save();
 });
 ```
+
+### 组件对象层（设计系统项目必读）
+
+当 `data-testid` 打在组件**宿主**上、真实控件（input/textarea）在内部时，"宿主 → 内部元素"的映射属于组件库知识，必须收口到 `src/components/`，禁止散落在页面对象里：
+
+```ts
+// 页面对象中声明式使用，组件库内部结构变化时只改组件类一处
+export class ProfilePage extends BasePage {
+  readonly path = '/profile.html';
+
+  private readonly nickname = new TextInput(this.page.getByTestId('nickname'));
+  private readonly bio = new TextArea(this.page.getByTestId('bio'));
+  private readonly city = new Dropdown(this.page.getByTestId('city'));
+
+  async updateBio(text: string): Promise<void> {
+    await this.bio.fill(text);
+  }
+}
+```
+
+已提供的组件：`TextInput`、`TextArea`（fill/clear/expectValue/expectEnabled/expectDisabled）、`Dropdown`（select/expectSelected，展示带浮层交互的封装方式）。
+
+约定：
+
+- 组件构造参数接收 `Locator`（宿主）而非 testid 字符串，天然支持嵌套：`new TextInput(row.getByTestId('qty'))`
+- 状态断言默认走原生 `disabled`/`aria-disabled`；若你们的组件禁用时只改宿主类名，在对应组件类中覆写 `expectDisabled`
+- Web Component（open shadow DOM）无需特殊处理，`host.locator('input')` 自动穿透
+- 分层依赖方向：Page → Component → Playwright 原语；组件不感知页面，更不感知 Gherkin
+
+（注：示例站 saucedemo 的 `data-test` 直接打在原生元素上，无宿主包裹，因此示例页面对象未使用组件层。）
 
 ### 新增一个环境
 
