@@ -11,7 +11,7 @@ export interface NewTradeRequest {
 
 /**
  * 交易生命周期流程：跨 TradePortalPage / NewTradePage 的业务编排。
- * maker 和 checker 的 RoleSession 各持有一个实例，绑定各自的 context。
+ * maker/checker 通过 loginAs 切换身份后共用同一实例。
  * 搜索结果统一在 all trades 视图断言，若你们默认视图不同在此调整。
  */
 export class TradeFlow {

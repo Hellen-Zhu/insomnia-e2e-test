@@ -1,33 +1,40 @@
 import type { DataTable } from 'playwright-bdd';
+import { env } from '../config/env';
 import type { NewTradeRequest } from '../flows/trade.flow';
 import { Given, When, Then } from './fixtures';
 
-/** maker/checker 的登录态由各自 RoleSession 的 context 预注入，直达即可 */
-Given('the maker is on the trade portal', async ({ maker }) => {
-  await maker.tradePortalPage.open();
-  await maker.tradePortalPage.expectOpened();
+Given('the maker is on the trade portal', async ({ loginAs, tradePortalPage }) => {
+  await loginAs(env.makerUsername);
+  await tradePortalPage.open();
+  await tradePortalPage.expectOpened();
 });
 
-When('the maker creates a new trade:', async ({ maker, ctx }, table: DataTable) => {
+When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
   const request = table.rowsHash() as unknown as NewTradeRequest;
-  ctx.tradeId = await maker.tradeFlow.createTrade(request);
+  ctx.set('tradeId', await tradeFlow.createTrade(request));
 });
 
 Then(
   'the new trade should appear with status {string} and event status {string}',
-  async ({ maker, ctx }, status: string, eventStatus: string) => {
-    const row = await maker.tradeFlow.findTradeRow(ctx.requireTradeId());
-    await row.expectContains(ctx.requireTradeId(), status, eventStatus);
+  async ({ tradeFlow, ctx }, status: string, eventStatus: string) => {
+    const tradeId = ctx.require('tradeId');
+    const row = await tradeFlow.findTradeRow(tradeId);
+    await row.expectContains(tradeId, status, eventStatus);
   },
 );
 
-When('the checker approves the trade', async ({ checker, ctx }) => {
-  await checker.tradePortalPage.open();
-  await checker.tradePortalPage.expectOpened();
-  await checker.tradeFlow.approveTrade(ctx.requireTradeId());
+/** 切到 checker 身份后回到 portal——同一浏览器会话，ctx 里的 tradeId 继续可用 */
+When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeFlow, ctx }) => {
+  await loginAs(env.checkerUsername);
+  await tradePortalPage.open();
+  await tradePortalPage.expectOpened();
+  await tradeFlow.approveTrade(ctx.require('tradeId'));
 });
 
-Then('the trade should show event status {string}', async ({ checker, ctx }, eventStatus: string) => {
-  const row = await checker.tradeFlow.findTradeRow(ctx.requireTradeId());
-  await row.expectContains(eventStatus);
-});
+Then(
+  'the trade should show event status {string}',
+  async ({ tradeFlow, ctx }, eventStatus: string) => {
+    const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
+    await row.expectContains(eventStatus);
+  },
+);

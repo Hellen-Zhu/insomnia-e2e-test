@@ -1,60 +1,32 @@
 import { test as base, createBdd } from 'playwright-bdd';
 import { LoginPage } from '../pages/login.page';
 import { InventoryPage } from '../pages/inventory.page';
-import { CartPage } from '../pages/cart.page';
-import { CheckoutPage } from '../pages/checkout.page';
 import { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
 import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
 import { NewTradePage } from '../pages/new-trade/new-trade.page';
 import { LoginFlow } from '../flows/login.flow';
-import { CheckoutFlow } from '../flows/checkout.flow';
 import { TradeFlow } from '../flows/trade.flow';
 import { UserApi } from '../api/user.api';
 import { env } from '../config/env';
-import type { APIRequestContext, Browser, BrowserContextOptions, Page } from '@playwright/test';
+import type { APIRequestContext, BrowserContextOptions } from '@playwright/test';
 
 type StorageState = BrowserContextOptions['storageState'];
+type SessionCookie = Exclude<StorageState, string | undefined>['cookies'][number];
 
-/** 构造某账号的已登录会话（真实项目：改为调登录 API 换 token 后组装） */
-function sessionStateFor(username: string): StorageState {
-  return {
-    cookies: [
-      {
-        name: 'session-username',
-        value: username,
-        domain: new URL(env.baseUrl).hostname,
-        path: '/',
-        expires: -1,
-        httpOnly: false,
-        secure: true,
-        sameSite: 'Lax' as const,
-      },
-    ],
-    origins: [],
-  };
-}
-
-/**
- * 角色会话：多角色场景（maker/checker 四眼审批等）中，每个角色一个
- * 独立的 browser context（登录态完全隔离）+ 该角色使用的页面对象集。
- * saucedemo 页面留作演示；真实项目只保留 trade 系列即可。
- */
-export class RoleSession {
-  readonly inventoryPage: InventoryPage;
-  readonly cartPage: CartPage;
-  readonly tradePortalPage: TradePortalPage;
-  readonly tradeDetailPage: TradeDetailPage;
-  readonly newTradePage: NewTradePage;
-  readonly tradeFlow: TradeFlow;
-
-  constructor(readonly page: Page) {
-    this.inventoryPage = new InventoryPage(page);
-    this.cartPage = new CartPage(page);
-    this.tradePortalPage = new TradePortalPage(page);
-    this.tradeDetailPage = new TradeDetailPage(page);
-    this.newTradePage = new NewTradePage(page);
-    this.tradeFlow = new TradeFlow(this.tradePortalPage, this.newTradePage);
-  }
+/** 构造某账号的会话 cookie（真实项目：改为调登录 API 换 token 后组装） */
+function sessionCookiesFor(username: string): SessionCookie[] {
+  return [
+    {
+      name: 'session-username',
+      value: username,
+      domain: new URL(env.baseUrl).hostname,
+      path: '/',
+      expires: -1,
+      httpOnly: false,
+      secure: true,
+      sameSite: 'Lax' as const,
+    },
+  ];
 }
 
 /**
@@ -67,19 +39,36 @@ export class RoleSession {
  *
  * 需要传递新数据时在此类上加类型化字段，不要用 any/Map 逃逸类型检查。
  */
-export class ScenarioContext {
-  /** 本场景中已加入购物车的商品名 */
-  readonly addedProducts: string[] = [];
-
+/**
+ * 场景内跨步骤传递的数据字段全部在此声明——这是唯一需要维护的地方。
+ * 新增一份数据 = 加一行键声明，读写自动获得类型推导与检查。
+ */
+export interface ScenarioData {
   /** maker 创建交易后从接口响应捕获的 tradeId */
-  tradeId?: string;
+  tradeId: string;
+}
 
-  /** 读取 tradeId，未写入时给出可诊断的错误而非静默 undefined */
-  requireTradeId(): string {
-    if (!this.tradeId) {
-      throw new Error('ctx.tradeId is empty — did the create-trade step run before this one?');
+export class ScenarioContext {
+  private readonly data: Partial<ScenarioData> = {};
+
+  set<K extends keyof ScenarioData>(key: K, value: ScenarioData[K]): void {
+    this.data[key] = value;
+  }
+
+  /** 数据可能尚未产生时使用（返回 undefined 由调用方处理） */
+  get<K extends keyof ScenarioData>(key: K): ScenarioData[K] | undefined {
+    return this.data[key];
+  }
+
+  /** 断言式读取：未写入时给出可诊断的错误，而非让 undefined 渗透到后续步骤 */
+  require<K extends keyof ScenarioData>(key: K): ScenarioData[K] {
+    const value = this.data[key];
+    if (value === undefined) {
+      throw new Error(
+        `ctx.${String(key)} is empty — did the step that produces it run before this one?`,
+      );
     }
-    return this.tradeId;
+    return value;
   }
 
   private readonly cleanups: Array<() => Promise<void>> = [];
@@ -112,30 +101,17 @@ export class ScenarioContext {
 type PageFixtures = {
   loginPage: LoginPage;
   inventoryPage: InventoryPage;
-  cartPage: CartPage;
-  checkoutPage: CheckoutPage;
   tradePortalPage: TradePortalPage;
   tradeDetailPage: TradeDetailPage;
   newTradePage: NewTradePage;
   loginFlow: LoginFlow;
-  checkoutFlow: CheckoutFlow;
   tradeFlow: TradeFlow;
   apiContext: APIRequestContext;
   userApi: UserApi;
-  maker: RoleSession;
-  checker: RoleSession;
+  /** 场景内切换登录角色（maker/checker 等），同一浏览器会话、同一套页面对象 */
+  loginAs: (username: string) => Promise<void>;
   ctx: ScenarioContext;
 };
-
-/** 为指定账号开一个独立的已登录 browser context（多角色场景用） */
-async function newRoleSession(browser: Browser, username: string) {
-  const context = await browser.newContext({
-    baseURL: env.baseUrl,
-    storageState: sessionStateFor(username),
-  });
-  const page = await context.newPage();
-  return { session: new RoleSession(page), context };
-}
 
 type WorkerFixtures = {
   workerStorageState: StorageState;
@@ -144,16 +120,12 @@ type WorkerFixtures = {
 export const test = base.extend<PageFixtures, WorkerFixtures>({
   loginPage: async ({ page }, use) => use(new LoginPage(page)),
   inventoryPage: async ({ page }, use) => use(new InventoryPage(page)),
-  cartPage: async ({ page }, use) => use(new CartPage(page)),
-  checkoutPage: async ({ page }, use) => use(new CheckoutPage(page)),
   tradePortalPage: async ({ page }, use) => use(new TradePortalPage(page)),
   tradeDetailPage: async ({ page }, use) => use(new TradeDetailPage(page)),
   newTradePage: async ({ page }, use) => use(new NewTradePage(page)),
   /* Flow 依赖 Page fixture 组装，同样按场景实例化 */
   loginFlow: async ({ loginPage, inventoryPage }, use) =>
     use(new LoginFlow(loginPage, inventoryPage)),
-  checkoutFlow: async ({ cartPage, checkoutPage }, use) =>
-    use(new CheckoutFlow(cartPage, checkoutPage)),
   tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
     use(new TradeFlow(tradePortalPage, newTradePage)),
   /* API 造数：独立于浏览器的 HTTP 上下文（可配 API_BASE_URL 与鉴权头） */
@@ -163,16 +135,16 @@ export const test = base.extend<PageFixtures, WorkerFixtures>({
     await apiContext.dispose();
   },
   userApi: async ({ apiContext }, use) => use(new UserApi(apiContext)),
-  /* 多角色会话：各自独立 context，场景内可同时存活、交替操作 */
-  maker: async ({ browser }, use) => {
-    const { session, context } = await newRoleSession(browser, env.makerUsername);
-    await use(session);
-    await context.close();
-  },
-  checker: async ({ browser }, use) => {
-    const { session, context } = await newRoleSession(browser, env.checkerUsername);
-    await use(session);
-    await context.close();
+  /**
+   * 角色切换：清掉当前会话 cookie，注入目标账号的会话。
+   * maker→checker 这类先后操作共用同一浏览器会话与同一 ctx；
+   * 若某天真的需要两个角色同时在线（极少见），再临时开第二个 context。
+   */
+  loginAs: async ({ context }, use) => {
+    await use(async (username: string) => {
+      await context.clearCookies();
+      await context.addCookies(sessionCookiesFor(username));
+    });
   },
   ctx: async ({}, use) => use(new ScenarioContext()),
 
@@ -185,21 +157,7 @@ export const test = base.extend<PageFixtures, WorkerFixtures>({
    */
   workerStorageState: [
     async ({}, use) => {
-      await use({
-        cookies: [
-          {
-            name: 'session-username',
-            value: env.username,
-            domain: new URL(env.baseUrl).hostname,
-            path: '/',
-            expires: -1,
-            httpOnly: false,
-            secure: true,
-            sameSite: 'Lax' as const,
-          },
-        ],
-        origins: [],
-      });
+      await use({ cookies: sessionCookiesFor(env.username), origins: [] });
     },
     { scope: 'worker' },
   ],

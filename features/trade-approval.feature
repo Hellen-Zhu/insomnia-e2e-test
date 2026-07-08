@@ -2,8 +2,9 @@
 Feature: Trade maker-checker approval
 
   New trades created by a maker require approval from a checker
-  before going live (four-eyes principle). The maker and checker
-  operate in fully isolated browser sessions within one scenario.
+  before going live (four-eyes principle). Roles are switched within
+  the same browser session; runtime data (tradeId) flows between
+  steps through the scenario context.
 
   Scenario: Maker creates a trade and checker approves it
     Given the maker is on the trade portal

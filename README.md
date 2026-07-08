@@ -55,7 +55,7 @@ ENV=staging npm test    # 切换环境
 | `src/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page、感知 Gherkin |
 | `src/components/` | 设计系统组件（宿主→内部） | 原语 | page、flow |
 
-**step 调 flow 还是 page？** 这行 Gherkin 跨页面（`I am logged in`）→ flow；单页动作（`I open the cart`）→ page。
+**step 调 flow 还是 page？** 这行 Gherkin 跨页面（`the maker creates a new trade`）→ flow；单页动作（`the maker is on the trade portal`）→ page。
 
 ## 如何扩展
 
@@ -189,35 +189,35 @@ flaky 治理流程（retry 是止血不是治病）：
 
 ### 多角色场景（maker/checker 四眼审批）
 
-一个场景里需要多个角色时（maker 创建 → checker 审批），每个角色是一个**独立的
-browser context**（登录态完全隔离，场景内同时存活）。框架提供 `maker`/`checker`
-角色会话 fixture（`RoleSession`），账号来自 `MAKER_USERNAME`/`CHECKER_USERNAME`：
-
-```gherkin
-Scenario: Trade requires four-eyes approval
-  When the maker creates a trade of 1000 "USD"
-  Then the maker should see the trade in status "Pending Approval"
-  When the checker approves the trade
-  Then the checker should see the trade in status "Approved"
-```
+maker 创建 → checker 审批是**先后**发生的，因此不需要两个同时存活的浏览器会话：
+同一会话内用 `loginAs(username)` fixture 切换身份即可（清 cookie → 注入目标账号会话），
+页面对象只需一套，账号来自 `MAKER_USERNAME`/`CHECKER_USERNAME`。
+完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
 
 ```ts
-When('the maker creates a trade of {int} {string}', async ({ maker, ctx }, amount, ccy) => {
-  ctx.tradeId = await maker.tradePage.createTrade(amount, ccy);   // 产物存 ctx
-  ctx.addCleanup(() => tradeApi.deleteTrade(ctx.tradeId!));       // 登记清理
+Given('the maker is on the trade portal', async ({ loginAs, tradePortalPage }) => {
+  await loginAs(env.makerUsername);
+  await tradePortalPage.open();
 });
 
-When('the checker approves the trade', async ({ checker, ctx }) => {
-  await checker.approvalPage.approve(ctx.tradeId!);               // 另一会话取用
+When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
+  ctx.set('tradeId', await tradeFlow.createTrade(table.rowsHash() as NewTradeRequest));
+});
+
+When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeFlow, ctx }) => {
+  await loginAs(env.checkerUsername);          // 切换身份，浏览器会话不变
+  await tradePortalPage.open();
+  await tradeFlow.approveTrade(ctx.require('tradeId'));  // ctx 跨角色天然共享
 });
 ```
 
 要点：
 
-- 角色间传递业务产物（tradeId）走 `ctx`；在 `ScenarioContext` 上加类型化字段
-- `RoleSession` 上挂该角色使用的页面对象（模板挂的是 saucedemo 页面，按真实业务替换）
-- 默认注入的 `page`/会话与角色会话互不相干；纯多角色场景直接不使用默认 `page` 即可
-- 角色账号建议配合 API 造数：数据准备走 API，UI 只走"创建→审批"这条被验证的路径
+- 角色间传递业务产物（tradeId）走 `ctx`——它是场景级 fixture，与角色无关，
+  只需保证场景之间不串（fixture 机制已保证）
+- `loginAs` 的实现在真实项目中替换为调登录 API 换取目标账号 token 后注入
+- 若某天确实需要两个角色**同时在线**交替操作（极少见），再在步骤里临时
+  `browser.newContext()` 开第二个会话，用完关闭
 
 ### Hooks（Before/After）
 
@@ -243,11 +243,11 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 | 层次 | 方式 | 适用 | 示例 |
 |---|---|---|---|
 | 1 | `Scenario Outline` + `Examples` | 数据量小且差异即业务规则 | `login.feature` 的无效凭证表 |
-| 2 | 步骤 DataTable | 单场景的结构化输入 | `checkout.feature` 的批量加购 |
-| 3 | `test-data/*.json` + 业务别名 | 数据量大或细节与业务无关 | `"default" shipping profile` |
+| 2 | 步骤 DataTable | 单场景的结构化输入 | `trade-approval.feature` 的新建交易表单 |
+| 3 | `test-data/*` + 业务别名/路径 | 数据量大或细节与业务无关 | `test-data/trades/trf-sample.json` 交易捕获文件 |
 
-层次 3 的约定：Gherkin 里只出现**业务别名**，真实值在 `test-data/` 下的 JSON 中，
-通过 `src/utils/test-data.ts` 的类型化访问函数读取（别名不存在时报错并列出可用值）。
+层次 3 的约定：Gherkin 里只出现**业务别名或文件路径**，真实数据在 `test-data/` 下维护；
+需要别名映射时提供类型化访问函数（别名不存在时报错并列出可用值）。
 
 ### 跨步骤共享状态与数据隔离
 
@@ -257,20 +257,21 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 - **隔离**：场景结束实例销毁，场景之间、并行 worker 之间互不可见
 
 ```ts
-When('I add the product {string} to the cart', async ({ inventoryPage, ctx }, name: string) => {
-  await inventoryPage.addProductToCart(name);
-  ctx.addedProducts.push(name);           // 写入本场景上下文
+When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
+  ctx.set('tradeId', await tradeFlow.createTrade(request));  // 写入本场景上下文
 });
 
-Then('the cart should contain all added products', async ({ cartPage, ctx }) => {
-  for (const name of ctx.addedProducts) { // 读取上一步的结果
-    await cartPage.expectContainsProduct(name);
-  }
+Then('the new trade should appear ...', async ({ tradeFlow, ctx }) => {
+  const tradeId = ctx.require('tradeId');  // 断言式读取：未写入时给出可诊断错误
+  await (await tradeFlow.findTradeRow(tradeId)).expectContains(tradeId);
 });
 ```
 
+键集中声明在 `ScenarioData` interface 中，`set/get/require` 是泛型方法——
+**新增一份跨步骤数据 = 在 interface 加一行**，读写自动获得类型推导；
+`require()` 在数据未产生时立即抛出可诊断错误，而非让 `undefined` 渗透到后续断言。
+
 **红线：禁止用 steps 文件的模块级变量共享状态**——同一 worker 会串场景，并行模式下必然 flaky。
-新增共享字段时在 `ScenarioContext` 类上加类型化属性。
 
 隔离的完整层次：
 
