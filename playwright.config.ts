@@ -16,6 +16,8 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   reporter: [
     ['list'],
+    /* 场景级墙钟时间戳与耗时（日志对账用），不需要时删掉这行即可 */
+    ['./src/reporters/timing-reporter.ts'],
     /* 工程师用：Playwright 官方报告，含 trace/截图 */
     ['html', { outputFolder: 'reports/playwright-report', open: 'never' }],
     /* 业务方用：Cucumber 格式报告，按 Feature/Scenario 组织 */
