@@ -255,6 +255,11 @@ account: [
 新增步骤目录时需同步更新。Playwright 官方扩展可对 `.features-gen` 生成的
 测试提供运行/调试按钮（先执行 `npx bddgen`）。
 
+说明：Cucumber 扩展是纯静态语言服务器（解析 Gherkin + 扫描 `Given/When/Then`
+的 cucumber expression），不运行测试，因此与 playwright-bdd 完全兼容——
+这是 playwright-bdd 官方文档推荐的 IDE 集成方式。注意 **官方 Cucumber 扩展**
+与 **Cucumber (Gherkin) Full Support**（alexkrechik）二选一，同时启用会冲突。
+
 ## 定位器规范
 
 - 首选 `data-test` 属性（已配置为 Playwright 的 `testIdAttribute`）
