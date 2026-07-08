@@ -240,6 +240,21 @@ account: [
 复制 `env/.env.example` 为 `env/.env.<名称>`，填入配置，然后 `ENV=<名称> npm test`。
 真实项目中请将 `env/.env.*` 加入 `.gitignore`（模板已留注释），密钥通过 CI secrets 注入。
 
+## IDE 支持（VS Code）
+
+打开项目时按提示安装推荐扩展（`.vscode/extensions.json` 已配置），其中
+**Cucumber 官方扩展** 提供 feature ↔ 步骤定义的导航：
+
+| 操作 | 快捷键 |
+|---|---|
+| 从 feature 步骤跳到步骤定义 | 步骤上 `F12` 或 `⌘/Ctrl + Click` |
+| 写步骤时自动补全已有步骤 | 直接输入触发（复用优先的关键） |
+| 未定义步骤检测 | 编辑器内直接标黄 |
+
+路径映射在 `.vscode/settings.json` 的 `cucumber.features` / `cucumber.glue`，
+新增步骤目录时需同步更新。Playwright 官方扩展可对 `.features-gen` 生成的
+测试提供运行/调试按钮（先执行 `npx bddgen`）。
+
 ## 定位器规范
 
 - 首选 `data-test` 属性（已配置为 Playwright 的 `testIdAttribute`）
