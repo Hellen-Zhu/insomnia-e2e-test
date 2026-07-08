@@ -25,6 +25,8 @@ export type SwapDirection = 'left' | 'right' | 'up' | 'down' | 'down-left';
 /** 行操作菜单项：trade-row-action-{action} */
 export type TradeRowAction =
   | 'view-details'
+  | 'approve'
+  | 'reject'
   | 'allocation'
   | 'novationremaining'
   | 'novationoutgoing'
@@ -82,6 +84,10 @@ export class BlotterView extends BaseComponent {
     return new BlotterRow(this.rows().filter({ hasText: text }));
   }
 
+  firstRow(): BlotterRow {
+    return new BlotterRow(this.rows().first());
+  }
+
   async expectRowCount(count: number): Promise<void> {
     await expect(this.rows()).toHaveCount(count);
   }
@@ -92,6 +98,17 @@ export class BlotterView extends BaseComponent {
 }
 
 export class BlotterRow extends BaseComponent {
+  /**
+   * 断言行内包含全部给定文本（tradeId、状态等）。
+   * 行内单元格没有列级 testid，暂用整行文本包含断言；
+   * 若前端补了 cell 级 testid，改为按列精确断言。
+   */
+  async expectContains(...texts: string[]): Promise<void> {
+    for (const text of texts) {
+      await expect(this.host).toContainText(text);
+    }
+  }
+
   async openActionsMenu(): Promise<void> {
     await this.host.getByTestId('transaction-row-actions-btn').click();
   }

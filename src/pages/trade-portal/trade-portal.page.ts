@@ -3,6 +3,7 @@ import { TopNavSection } from './top-nav.section';
 import { BottomNavSection } from './bottom-nav.section';
 import { TransactionFilterSection } from './transaction-filter.section';
 import { BlotterView } from './blotter-view.component';
+import { CheckerActionDialog } from './checker-action.dialog';
 
 /**
  * Trade Portal 页面（真实项目参考实现）。
@@ -28,6 +29,11 @@ export class TradePortalPage extends BasePage {
   readonly allTradesBlotter = new BlotterView(this.page, 'all');
   readonly forwardTradesBlotter = new BlotterView(this.page, 'forwardTrades');
   readonly americanOptionsBlotter = new BlotterView(this.page, 'americanOptions');
+
+  /** blotter 行 approve/reject 触发的确认弹窗（页面级浮层） */
+  readonly checkerActionDialog = new CheckerActionDialog(
+    this.page.getByTestId('checker-action-dialog'),
+  );
 
   private readonly refreshBtn = this.page.getByTestId('trades-refresh-btn');
   private readonly newTradeBtn = this.page.getByTestId('trades-new-trade-btn');

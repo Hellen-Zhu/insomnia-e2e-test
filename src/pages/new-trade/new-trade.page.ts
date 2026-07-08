@@ -72,6 +72,24 @@ export class NewTradePage extends BasePage {
     await this.btn('save').click();
   }
 
+  /**
+   * 保存并捕获创建接口的响应，返回后端生成的 tradeId（data.id）。
+   *
+   * waitForResponse 必须在 click 之前挂上监听，否则可能错过响应。
+   * URL 匹配规则按真实的创建交易端点调整（当前假定 POST 且路径含 /trades）。
+   */
+  async saveAndGetTradeId(): Promise<string> {
+    const responsePromise = this.page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        response.url().includes('/trades') &&
+        response.ok(),
+    );
+    await this.btn('save').click();
+    const body = (await (await responsePromise).json()) as { data: { id: string } };
+    return body.data.id;
+  }
+
   async skipRiskCheck(): Promise<void> {
     await this.btn('skip-risk').click();
   }

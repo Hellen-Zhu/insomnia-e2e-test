@@ -3,8 +3,12 @@ import { LoginPage } from '../pages/login.page';
 import { InventoryPage } from '../pages/inventory.page';
 import { CartPage } from '../pages/cart.page';
 import { CheckoutPage } from '../pages/checkout.page';
+import { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
+import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
+import { NewTradePage } from '../pages/new-trade/new-trade.page';
 import { LoginFlow } from '../flows/login.flow';
 import { CheckoutFlow } from '../flows/checkout.flow';
+import { TradeFlow } from '../flows/trade.flow';
 import { UserApi } from '../api/user.api';
 import { env } from '../config/env';
 import type { APIRequestContext, Browser, BrowserContextOptions, Page } from '@playwright/test';
@@ -33,15 +37,23 @@ function sessionStateFor(username: string): StorageState {
 /**
  * 角色会话：多角色场景（maker/checker 四眼审批等）中，每个角色一个
  * 独立的 browser context（登录态完全隔离）+ 该角色使用的页面对象集。
- * 真实项目：把 inventoryPage 换成 tradePage/approvalPage 等业务页面。
+ * saucedemo 页面留作演示；真实项目只保留 trade 系列即可。
  */
 export class RoleSession {
   readonly inventoryPage: InventoryPage;
   readonly cartPage: CartPage;
+  readonly tradePortalPage: TradePortalPage;
+  readonly tradeDetailPage: TradeDetailPage;
+  readonly newTradePage: NewTradePage;
+  readonly tradeFlow: TradeFlow;
 
   constructor(readonly page: Page) {
     this.inventoryPage = new InventoryPage(page);
     this.cartPage = new CartPage(page);
+    this.tradePortalPage = new TradePortalPage(page);
+    this.tradeDetailPage = new TradeDetailPage(page);
+    this.newTradePage = new NewTradePage(page);
+    this.tradeFlow = new TradeFlow(this.tradePortalPage, this.newTradePage);
   }
 }
 
@@ -58,6 +70,17 @@ export class RoleSession {
 export class ScenarioContext {
   /** 本场景中已加入购物车的商品名 */
   readonly addedProducts: string[] = [];
+
+  /** maker 创建交易后从接口响应捕获的 tradeId */
+  tradeId?: string;
+
+  /** 读取 tradeId，未写入时给出可诊断的错误而非静默 undefined */
+  requireTradeId(): string {
+    if (!this.tradeId) {
+      throw new Error('ctx.tradeId is empty — did the create-trade step run before this one?');
+    }
+    return this.tradeId;
+  }
 
   private readonly cleanups: Array<() => Promise<void>> = [];
 
@@ -91,8 +114,12 @@ type PageFixtures = {
   inventoryPage: InventoryPage;
   cartPage: CartPage;
   checkoutPage: CheckoutPage;
+  tradePortalPage: TradePortalPage;
+  tradeDetailPage: TradeDetailPage;
+  newTradePage: NewTradePage;
   loginFlow: LoginFlow;
   checkoutFlow: CheckoutFlow;
+  tradeFlow: TradeFlow;
   apiContext: APIRequestContext;
   userApi: UserApi;
   maker: RoleSession;
@@ -119,11 +146,16 @@ export const test = base.extend<PageFixtures, WorkerFixtures>({
   inventoryPage: async ({ page }, use) => use(new InventoryPage(page)),
   cartPage: async ({ page }, use) => use(new CartPage(page)),
   checkoutPage: async ({ page }, use) => use(new CheckoutPage(page)),
+  tradePortalPage: async ({ page }, use) => use(new TradePortalPage(page)),
+  tradeDetailPage: async ({ page }, use) => use(new TradeDetailPage(page)),
+  newTradePage: async ({ page }, use) => use(new NewTradePage(page)),
   /* Flow 依赖 Page fixture 组装，同样按场景实例化 */
   loginFlow: async ({ loginPage, inventoryPage }, use) =>
     use(new LoginFlow(loginPage, inventoryPage)),
   checkoutFlow: async ({ cartPage, checkoutPage }, use) =>
     use(new CheckoutFlow(cartPage, checkoutPage)),
+  tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
+    use(new TradeFlow(tradePortalPage, newTradePage)),
   /* API 造数：独立于浏览器的 HTTP 上下文（可配 API_BASE_URL 与鉴权头） */
   apiContext: async ({ playwright }, use) => {
     const apiContext = await playwright.request.newContext({ baseURL: env.apiBaseUrl });
