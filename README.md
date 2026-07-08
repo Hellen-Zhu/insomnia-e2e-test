@@ -121,6 +121,23 @@ export class ProfilePage extends BasePage {
 
 （注：示例站 saucedemo 的 `data-test` 直接打在原生元素上，无宿主包裹，因此示例页面对象未使用组件层。）
 
+### Hooks（Before/After）
+
+位置：`src/steps/hooks.ts`。执行顺序：
+
+```
+fixture setup → Before hooks → Background → 场景步骤 → After hooks → fixture teardown
+```
+
+**先问：真的需要 hook 吗？** 浏览器生命周期、失败截图/trace、每场景状态隔离都已由
+Playwright/config/fixture 承担。hook 只保留两类职责：
+
+- **标签驱动的条件准备**：`Before({ tags: '@mobile' }, ...)` 只对打标场景生效
+- **横切收尾**：`After` 里清理场景产生的后端数据、失败时附加 `ctx` 到报告（已内置）
+
+注意：`BeforeAll/AfterAll` 是**每 worker 一次**（Playwright 是多进程模型），不是全局一次；
+"全局仅一次"的准备用 Playwright 的 `globalSetup` 配置。
+
 ### 数据驱动的三个层次
 
 选型标准：**业务方评审场景时需要看到这个数据吗？**
