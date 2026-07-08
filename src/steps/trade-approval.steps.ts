@@ -1,7 +1,7 @@
 import type { DataTable } from 'playwright-bdd';
 import { env } from '../config/env';
 import type { NewTradeRequest } from '../flows/trade.flow';
-import { Given, When, Then } from './fixtures/trade.fixtures';
+import { Given, When, Then } from '../fixtures/trade.fixtures';
 
 Given('the maker is on the trade portal', async ({ loginAs, tradePortalPage }) => {
   await loginAs(env.makerUsername);

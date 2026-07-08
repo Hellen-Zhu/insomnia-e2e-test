@@ -1,8 +1,8 @@
 import { createBdd } from 'playwright-bdd';
 import { baseTest } from './base.fixtures';
-import { LoginPage } from '../../pages/login.page';
-import { InventoryPage } from '../../pages/inventory.page';
-import { LoginFlow } from '../../flows/login.flow';
+import { LoginPage } from '../pages/login.page';
+import { InventoryPage } from '../pages/inventory.page';
+import { LoginFlow } from '../flows/login.flow';
 
 /** 登录域 fixtures：登录页 + 落地页 + 登录流程 */
 type LoginFixtures = {

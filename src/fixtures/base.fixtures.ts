@@ -1,6 +1,6 @@
 import { test as base } from 'playwright-bdd';
-import { UserApi } from '../../api/user.api';
-import { env } from '../../config/env';
+import { UserApi } from '../api/user.api';
+import { env } from '../config/env';
 import type { APIRequestContext, BrowserContextOptions } from '@playwright/test';
 
 type StorageState = BrowserContextOptions['storageState'];

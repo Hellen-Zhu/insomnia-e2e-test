@@ -36,7 +36,7 @@ ENV=staging npm test    # 切换环境
 │   ├── pages/          # 页面层：POM，封装定位器与页面行为
 │   ├── components/     # 组件层：设计系统组件对象（宿主→内部元素的映射）
 │   ├── steps/          # 步骤层：Gherkin ↔ flow/page 的薄胶水
-│   │   └── fixtures/   # DI 中心：base（横切）+ 各业务域一个文件
+│   ├── fixtures/       # DI 中心：base（横切）+ 各业务域一个文件
 │   └── config/         # 配置层：环境相关配置（随 ENV 变化）
 ├── test-data/          # 外部测试数据（JSON），Gherkin 中以业务别名引用
 ├── env/                # 各环境变量文件 (.env.dev / .env.staging ...)
@@ -73,7 +73,7 @@ export class ProfilePage extends BasePage {
 }
 ```
 
-2. 在所属业务域的 fixtures 文件（`src/steps/fixtures/<domain>.fixtures.ts`）注册一行：
+2. 在所属业务域的 fixtures 文件（`src/fixtures/<domain>.fixtures.ts`）注册一行：
 
 ```ts
 profilePage: async ({ page }, use) => use(new ProfilePage(page)),
@@ -256,7 +256,7 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 
 ### 跨步骤共享状态与数据隔离
 
-同一机制解决两件事：`src/steps/fixtures/base.fixtures.ts` 中的 `ScenarioContext`（test 作用域 fixture）。
+同一机制解决两件事：`src/fixtures/base.fixtures.ts` 中的 `ScenarioContext`（test 作用域 fixture）。
 
 - **共享**：步骤 A 写入 `ctx.xxx`，步骤 B 读取——每个场景内是同一个实例
 - **隔离**：场景结束实例销毁，场景之间、并行 worker 之间互不可见

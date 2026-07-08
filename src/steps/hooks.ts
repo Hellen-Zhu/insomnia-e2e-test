@@ -1,5 +1,5 @@
 import { createBdd } from 'playwright-bdd';
-import { baseTest } from './fixtures/base.fixtures';
+import { baseTest } from '../fixtures/base.fixtures';
 
 /**
  * 场景级/worker 级钩子。

@@ -4,7 +4,8 @@ import { env } from './src/config/env';
 
 const testDir = defineBddConfig({
   features: 'features/**/*.feature',
-  steps: 'src/steps/**/*.ts',
+  /* fixtures 必须在 steps pattern 内：playwright-bdd 从中识别导出的 test 实例 */
+  steps: ['src/steps/**/*.ts', 'src/fixtures/**/*.ts'],
 });
 
 export default defineConfig({

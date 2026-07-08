@@ -1,9 +1,9 @@
 import { createBdd } from 'playwright-bdd';
 import { baseTest } from './base.fixtures';
-import { TradePortalPage } from '../../pages/trade-portal/trade-portal.page';
-import { TradeDetailPage } from '../../pages/trade-detail/trade-detail.page';
-import { NewTradePage } from '../../pages/new-trade/new-trade.page';
-import { TradeFlow } from '../../flows/trade.flow';
+import { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
+import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
+import { NewTradePage } from '../pages/new-trade/new-trade.page';
+import { TradeFlow } from '../flows/trade.flow';
 
 /** 交易域产生的跨步骤数据键（declaration merging 注入基座的 ScenarioData） */
 declare module './base.fixtures' {
