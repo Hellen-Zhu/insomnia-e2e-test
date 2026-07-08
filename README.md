@@ -82,8 +82,9 @@ profilePage: async ({ page }, use) => use(new ProfilePage(page)),
 新业务域则新建 `<domain>.fixtures.ts`：从 `baseTest` extend 并导出
 `createBdd(test)` 的 Given/When/Then，该域的 steps 从这里导入。
 约束（playwright-bdd）：**一个 scenario 的步骤必须来自同一个 test 实例
-或其祖先**——领域之间不要互相 extend，只从基座 extend；跨域场景需要
-时另建一个合并两域的 test 实例。
+或其祖先**——领域之间不要互相 extend；多个域共享的页面/步骤提升为
+公共祖先层（如 `trade-portal.fixtures.ts`：login 落地断言和 trade 业务
+入口都要用 portal，继承链为 base → tradePortal → { login, trade }）。
 
 ### 新增一个场景
 

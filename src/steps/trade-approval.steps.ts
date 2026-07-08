@@ -1,12 +1,6 @@
 import type { DataTable } from 'playwright-bdd';
 import type { NewTradeRequest } from '../flows/trade.flow';
-import { Given, When, Then } from '../fixtures/trade.fixtures';
-
-/** 登录前置用基座步骤 `Given I am logged in as "<role>"`，此步只负责到达 */
-Given('I am on the trade portal', async ({ tradePortalPage }) => {
-  await tradePortalPage.open();
-  await tradePortalPage.expectOpened();
-});
+import { When, Then } from '../fixtures/trade.fixtures';
 
 When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
   const request = table.rowsHash() as unknown as NewTradeRequest;

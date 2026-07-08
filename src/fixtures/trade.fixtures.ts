@@ -1,6 +1,5 @@
 import { createBdd } from 'playwright-bdd';
-import { baseTest } from './base.fixtures';
-import { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
+import { tradePortalTest } from './trade-portal.fixtures';
 import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
 import { NewTradePage } from '../pages/new-trade/new-trade.page';
 import { TradeFlow } from '../flows/trade.flow';
@@ -13,16 +12,17 @@ declare module './base.fixtures' {
   }
 }
 
-/** 交易域 fixtures：portal / 详情 / 新建 三个页面 + 生命周期流程 */
+/**
+ * 交易域 fixtures：详情 / 新建两个页面 + 生命周期流程。
+ * 从 tradePortalTest 继承，tradePortalPage 由父层提供。
+ */
 type TradeFixtures = {
-  tradePortalPage: TradePortalPage;
   tradeDetailPage: TradeDetailPage;
   newTradePage: NewTradePage;
   tradeFlow: TradeFlow;
 };
 
-export const test = baseTest.extend<TradeFixtures>({
-  tradePortalPage: async ({ page }, use) => use(new TradePortalPage(page)),
+export const test = tradePortalTest.extend<TradeFixtures>({
   tradeDetailPage: async ({ page }, use) => use(new TradeDetailPage(page)),
   newTradePage: async ({ page }, use) => use(new NewTradePage(page)),
   tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>

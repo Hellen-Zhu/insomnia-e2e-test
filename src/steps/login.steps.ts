@@ -21,11 +21,6 @@ When(
   },
 );
 
-/** 登录成功 = 落地 trade portal：URL 含 /trades 且 blotter 可见 */
-Then('I should be logged in', async ({ tradePortalPage }) => {
-  await tradePortalPage.expectLanded();
-});
-
 Then('I should see the error message {string}', async ({ loginPage }, message: string) => {
   await loginPage.expectError(message);
 });

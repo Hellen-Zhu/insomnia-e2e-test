@@ -10,7 +10,7 @@ Feature: User Login
   @smoke
   Scenario: Login successfully with a valid role
     When I login as "maker"
-    Then I should be logged in
+    Then I should land on the trade portal
 
   Scenario Outline: Login fails with invalid credentials
     When I login with username "<username>" and password "<password>"
