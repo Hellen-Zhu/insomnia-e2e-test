@@ -7,6 +7,6 @@ Given('I am on the trade portal', async ({ tradePortalPage }) => {
 });
 
 /** 登录/跳转后的落地断言：URL 含 /trades 且 blotter 渲染完成 */
-Then('I should land on the trade portal', async ({ tradePortalPage }) => {
+Then('the trade portal should be visible', async ({ tradePortalPage }) => {
   await tradePortalPage.expectLanded();
 });

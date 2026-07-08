@@ -16,11 +16,10 @@ Then(
   },
 );
 
-/** 切到 checker 角色后回到 portal——同一浏览器会话，ctx 里的 tradeId 继续可用 */
-When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeFlow, ctx }) => {
-  await loginAs('checker');
-  await tradePortalPage.open();
-  await tradePortalPage.expectOpened();
+/** 切到 checker 角色（清 cookie 重新登录，落地即在 portal）——ctx 里的 tradeId 继续可用 */
+When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
+  await context.clearCookies();
+  await loginFlow.loginAs('checker');
   await tradeFlow.approveTrade(ctx.require('tradeId'));
 });
 

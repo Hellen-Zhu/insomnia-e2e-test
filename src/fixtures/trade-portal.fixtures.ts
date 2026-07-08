@@ -1,22 +1,28 @@
 import { createBdd } from 'playwright-bdd';
 import { baseTest } from './base.fixtures';
+import { LoginPage } from '../pages/login.page';
 import { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
+import { LoginFlow } from '../flows/login.flow';
 
 /**
- * Trade portal 层：全应用的落地页/主页面。
- * login 域（登录后落地断言）和 trade 域（业务操作入口）都依赖它，
- * 因此不放在任一兄弟域，而是作为两者的公共祖先：
+ * 应用入口层：登录页 + trade portal（落地页）+ UI 登录流程。
+ * 所有业务域从这里 extend（base → tradePortal → { trade, product, ... }），
+ * 本层注册的步骤（登录、到达/落地断言）对全部业务场景可用。
  *
- *   base → tradePortal → { login, trade }
- *
- * 它注册的步骤（见 steps/trade-portal.steps.ts）对两个域的场景都可用。
+ * 登录目前只有 UI 一条通道（应用暂不支持会话注入/缓存），每次都真实登录；
+ * 将来支持后在 LoginFlow 或此处收口，步骤文本不变。
  */
 type TradePortalFixtures = {
+  loginPage: LoginPage;
   tradePortalPage: TradePortalPage;
+  loginFlow: LoginFlow;
 };
 
 export const tradePortalTest = baseTest.extend<TradePortalFixtures>({
+  loginPage: async ({ page }, use) => use(new LoginPage(page)),
   tradePortalPage: async ({ page }, use) => use(new TradePortalPage(page)),
+  loginFlow: async ({ loginPage, tradePortalPage }, use) =>
+    use(new LoginFlow(loginPage, tradePortalPage)),
 });
 
 export const { Given, When, Then } = createBdd(tradePortalTest);

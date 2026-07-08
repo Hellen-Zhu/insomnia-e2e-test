@@ -83,8 +83,8 @@ profilePage: async ({ page }, use) => use(new ProfilePage(page)),
 `createBdd(test)` 的 Given/When/Then，该域的 steps 从这里导入。
 约束（playwright-bdd）：**一个 scenario 的步骤必须来自同一个 test 实例
 或其祖先**——领域之间不要互相 extend；多个域共享的页面/步骤提升为
-公共祖先层（如 `trade-portal.fixtures.ts`：login 落地断言和 trade 业务
-入口都要用 portal，继承链为 base → tradePortal → { login, trade }）。
+公共祖先层。当前继承链：base → tradePortal（应用入口：登录页 + portal
++ LoginFlow）→ { trade, product }，登录/落地步骤对全部业务场景可用。
 
 ### 新增一个场景
 
@@ -150,28 +150,23 @@ Given('a registered user {string} exists', async ({ userApi, ctx }, alias: strin
 - 层级关系：steps/flows/hooks 可调 api 层；api 层不感知页面
 - `user.api.ts` 是模板，按真实后端契约调整路径与类型
 
-### 角色化登录与 worker 级会话复用
+### 角色化登录
 
 登录以**角色**为参数，凭证收口在 `src/config/users.ts`（角色 → 用户名/密码映射，
-env 里只放 URL 类配置；真实项目中密码经 CI secrets 注入或走登录 API 免密码）：
+env 里只放 URL 类配置；真实项目中密码经 CI secrets 注入）。
+应用暂不支持会话注入/缓存，**每次登录都真实走 UI**。两类步骤按用途选：
 
-- `Given I am logged in as "maker"`：**会话注入**（不走 UI），注册在基座实例上，
-  任何领域的场景都可用；也可在场景中途再次调用切换角色（maker→checker）
-- `When I login as "maker"`：**UI 表单登录**，仅用于登录功能本身的测试（`login.feature`）
-- 需要未登录状态的场景什么都不声明即可——登录态不再隐式预注入，`@guest` 标签已移除
+- `Given I am logged in as "maker"`：业务场景的登录前置（`auth.steps.ts`）。
+  走 `LoginFlow`：登录页 → 提交凭证 → **等落地页就绪**（portal URL + blotter
+  渲染断言），后续步骤开始时页面已可操作；中途切换角色（maker→checker）
+  先清 cookie 再登录
+- `When I login as "maker"` / `Then the trade portal should be visible`：
+  细粒度步骤，用于登录功能本身的测试（`login.feature`）
+- 需要未登录状态的场景什么都不声明即可——登录态不隐式预注入
 
-会话构建按角色在 worker 级缓存（`sessionCache` fixture）：
-
-```
-worker 启动
-  ├── 场景 1: loginAs("maker")   → 构建 maker 会话并缓存
-  ├── 场景 2: loginAs("maker")   → 直接复用缓存（真实项目 = 不再调登录 API）
-  └── 场景 3: loginAs("checker") → 构建 checker 会话并缓存
-```
-
-- 接入真实项目：只改 `base.fixtures.ts` 的 `buildSessionFor()`——调登录 API 换 token
-  组装 cookies/localStorage，`loginAs` 签名与所有步骤不动
-- 场景之间的隔离不受影响：共享的只是"会话凭证"，每个场景仍是全新 browser context
+将来应用支持会话注入/缓存时，在 `LoginFlow` 或 auth 步骤处收口改造，
+feature 文本与业务步骤都不需要动。
+场景之间的隔离不受影响：每个场景仍是全新 browser context。
 
 ### Retry 与 flaky 治理
 
@@ -200,7 +195,7 @@ flaky 治理流程（retry 是止血不是治病）：
 ### 多角色场景（maker/checker 四眼审批）
 
 maker 创建 → checker 审批是**先后**发生的，因此不需要两个同时存活的浏览器会话：
-同一会话内用 `loginAs(role)` fixture 切换角色即可（清 cookie → 注入目标角色会话），
+同一会话内切换角色即可（清 cookie → 以新角色重新登录），
 页面对象只需一套，凭证由 `src/config/users.ts` 按角色解析。
 完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
 
@@ -216,9 +211,9 @@ When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTab
   ctx.set('tradeId', await tradeFlow.createTrade(table.rowsHash() as NewTradeRequest));
 });
 
-When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeFlow, ctx }) => {
-  await loginAs('checker');                    // 切换角色，浏览器会话不变
-  await tradePortalPage.open();
+When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
+  await context.clearCookies();                // 清掉 maker 会话
+  await loginFlow.loginAs('checker');          // 以 checker 重新 UI 登录，落地即就绪
   await tradeFlow.approveTrade(ctx.require('tradeId'));  // ctx 跨角色天然共享
 });
 ```
@@ -227,8 +222,7 @@ When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeF
 
 - 角色间传递业务产物（tradeId）走 `ctx`——它是场景级 fixture，与角色无关，
   只需保证场景之间不串（fixture 机制已保证）
-- `loginAs` 的实现在真实项目中替换为调登录 API 换取目标角色 token 后注入
-  （改 `buildSessionFor()` 一处），worker 级 `sessionCache` 保证每角色只登录一次
+- 切换角色 = 清 cookie + 重新登录；应用支持会话注入后只需改造 `LoginFlow`
 - 若某天确实需要两个角色**同时在线**交替操作（极少见），再在步骤里临时
   `browser.newContext()` 开第二个会话，用完关闭
 
