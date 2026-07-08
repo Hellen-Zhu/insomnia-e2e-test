@@ -29,9 +29,4 @@ export const env = {
   baseUrl: required('BASE_URL'),
   /** 造数 API 的地址，未配置时回退到 baseUrl */
   apiBaseUrl: process.env.API_BASE_URL ?? required('BASE_URL'),
-  username: required('SAUCE_USERNAME'),
-  password: required('SAUCE_PASSWORD'),
-  /** 多角色场景的账号（maker/checker 等），未配置时回退到默认账号 */
-  makerUsername: process.env.MAKER_USERNAME ?? required('SAUCE_USERNAME'),
-  checkerUsername: process.env.CHECKER_USERNAME ?? required('SAUCE_USERNAME'),
 } as const;

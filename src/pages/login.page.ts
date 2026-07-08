@@ -18,4 +18,9 @@ export class LoginPage extends BasePage {
   async expectError(message: string): Promise<void> {
     await expect(this.errorMessage).toContainText(message);
   }
+
+  /** 登录成功的落地断言。saucedemo 落在 inventory；真实项目换成你们的落地页 URL */
+  async expectLoginSucceeded(): Promise<void> {
+    await expect(this.page).toHaveURL(/inventory\.html$/);
+  }
 }

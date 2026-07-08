@@ -149,23 +149,27 @@ Given('a registered user {string} exists', async ({ userApi, ctx }, alias: strin
 - 层级关系：steps/flows/hooks 可调 api 层；api 层不感知页面
 - `user.api.ts` 是模板，按真实后端契约调整路径与类型
 
-### 登录 API 化与 worker 级会话复用
+### 角色化登录与 worker 级会话复用
 
-套件默认**不走 UI 登录**：`workerStorageState`（worker 作用域 fixture）每个 worker
-只构建一次会话，覆写的 `storageState` 让每个场景的浏览器上下文创建时即已登录。
+登录以**角色**为参数，凭证收口在 `src/config/users.ts`（角色 → 用户名/密码映射，
+env 里只放 URL 类配置；真实项目中密码经 CI secrets 注入或走登录 API 免密码）：
+
+- `Given I am logged in as "maker"`：**会话注入**（不走 UI），注册在基座实例上，
+  任何领域的场景都可用；也可在场景中途再次调用切换角色（maker→checker）
+- `When I login as "maker"`：**UI 表单登录**，仅用于登录功能本身的测试（`login.feature`）
+- 需要未登录状态的场景什么都不声明即可——登录态不再隐式预注入，`@guest` 标签已移除
+
+会话构建按角色在 worker 级缓存（`sessionCache` fixture）：
 
 ```
-worker 启动 → 构建会话一次（真实项目：调登录 API 换 token）
-  ├── 场景 1 的 context 带会话创建   ← 直接访问业务页
-  ├── 场景 2 的 context 带会话创建
-  └── ...
+worker 启动
+  ├── 场景 1: loginAs("maker")   → 构建 maker 会话并缓存
+  ├── 场景 2: loginAs("maker")   → 直接复用缓存（真实项目 = 不再调登录 API）
+  └── 场景 3: loginAs("checker") → 构建 checker 会话并缓存
 ```
 
-- **`@guest` 标签** = 不注入会话：登录功能本身的测试（`login.feature`）从未登录状态开始
-- `Given I am logged in`：只做"直达业务页 + 到位断言"，不再走登录表单
-- `Given I am logged in as {string}`：保留的 UI 登录通道，用于以特定身份登录的场景
-- 接入真实项目：在 `workerStorageState` 中调登录 API 换 token 组装 cookies/localStorage；
-  多账号并行隔离按 `workerInfo.parallelIndex` 分配账号
+- 接入真实项目：只改 `base.fixtures.ts` 的 `buildSessionFor()`——调登录 API 换 token
+  组装 cookies/localStorage，`loginAs` 签名与所有步骤不动
 - 场景之间的隔离不受影响：共享的只是"会话凭证"，每个场景仍是全新 browser context
 
 ### Retry 与 flaky 治理
@@ -195,22 +199,24 @@ flaky 治理流程（retry 是止血不是治病）：
 ### 多角色场景（maker/checker 四眼审批）
 
 maker 创建 → checker 审批是**先后**发生的，因此不需要两个同时存活的浏览器会话：
-同一会话内用 `loginAs(username)` fixture 切换身份即可（清 cookie → 注入目标账号会话），
-页面对象只需一套，账号来自 `MAKER_USERNAME`/`CHECKER_USERNAME`。
+同一会话内用 `loginAs(role)` fixture 切换角色即可（清 cookie → 注入目标角色会话），
+页面对象只需一套，凭证由 `src/config/users.ts` 按角色解析。
 完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
 
-```ts
-Given('the maker is on the trade portal', async ({ loginAs, tradePortalPage }) => {
-  await loginAs(env.makerUsername);
-  await tradePortalPage.open();
-});
+```gherkin
+Given I am logged in as "maker"
+And I am on the trade portal
+When the maker creates a new trade: ...
+When the checker approves the trade
+```
 
+```ts
 When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
   ctx.set('tradeId', await tradeFlow.createTrade(table.rowsHash() as NewTradeRequest));
 });
 
 When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeFlow, ctx }) => {
-  await loginAs(env.checkerUsername);          // 切换身份，浏览器会话不变
+  await loginAs('checker');                    // 切换角色，浏览器会话不变
   await tradePortalPage.open();
   await tradeFlow.approveTrade(ctx.require('tradeId'));  // ctx 跨角色天然共享
 });
@@ -220,7 +226,8 @@ When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeF
 
 - 角色间传递业务产物（tradeId）走 `ctx`——它是场景级 fixture，与角色无关，
   只需保证场景之间不串（fixture 机制已保证）
-- `loginAs` 的实现在真实项目中替换为调登录 API 换取目标账号 token 后注入
+- `loginAs` 的实现在真实项目中替换为调登录 API 换取目标角色 token 后注入
+  （改 `buildSessionFor()` 一处），worker 级 `sessionCache` 保证每角色只登录一次
 - 若某天确实需要两个角色**同时在线**交替操作（极少见），再在步骤里临时
   `browser.newContext()` 开第二个会话，用完关闭
 

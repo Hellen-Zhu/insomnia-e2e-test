@@ -1,12 +1,21 @@
-import { test as base } from 'playwright-bdd';
+import { test as base, createBdd } from 'playwright-bdd';
 import { UserApi } from '../api/user.api';
 import { env } from '../config/env';
+import { credentialsFor } from '../config/users';
 import type { APIRequestContext, BrowserContextOptions } from '@playwright/test';
 
 type StorageState = BrowserContextOptions['storageState'];
 type SessionCookie = Exclude<StorageState, string | undefined>['cookies'][number];
 
-/** 构造某账号的会话 cookie（真实项目：改为调登录 API 换 token 后组装） */
+/**
+ * 为某角色构建会话 cookie。真实项目：改为调登录 API 换 token 后组装——
+ * 这是唯一需要改的地方，loginAs 的签名与所有步骤不动。
+ */
+function buildSessionFor(role: string): SessionCookie[] {
+  const { username } = credentialsFor(role);
+  return sessionCookiesFor(username);
+}
+
 function sessionCookiesFor(username: string): SessionCookie[] {
   return [
     {
@@ -87,13 +96,14 @@ export class ScenarioContext {
 type BaseFixtures = {
   apiContext: APIRequestContext;
   userApi: UserApi;
-  /** 场景内切换登录角色（maker/checker 等），同一浏览器会话、同一套页面对象 */
-  loginAs: (username: string) => Promise<void>;
+  /** 以角色身份登录/切换角色（maker/checker 等），同一浏览器会话、同一套页面对象 */
+  loginAs: (role: string) => Promise<void>;
   ctx: ScenarioContext;
 };
 
 type WorkerFixtures = {
-  workerStorageState: StorageState;
+  /** 角色 → 会话的 worker 级缓存：每个角色每 worker 只构建一次会话 */
+  sessionCache: Map<string, SessionCookie[]>;
 };
 
 export const baseTest = base.extend<BaseFixtures, WorkerFixtures>({
@@ -105,40 +115,31 @@ export const baseTest = base.extend<BaseFixtures, WorkerFixtures>({
   },
   userApi: async ({ apiContext }, use) => use(new UserApi(apiContext)),
   /**
-   * 角色切换：清掉当前会话 cookie，注入目标账号的会话。
-   * maker→checker 这类先后操作共用同一浏览器会话与同一 ctx；
-   * 若某天真的需要两个角色同时在线（极少见），再临时开第二个 context。
+   * 角色化登录/切换：清掉当前会话 cookie，注入目标角色的会话。
+   * 场景不再隐式预注入登录态——需要登录的场景显式声明
+   * `Given I am logged in as "maker"`（见 steps/auth.steps.ts）；
+   * maker→checker 先后切换共用同一浏览器会话与同一 ctx。
+   * 会话构建按角色在 worker 级缓存：真实项目中即"每角色每 worker
+   * 只调一次登录 API"，本 worker 后续场景直接复用。
    */
-  loginAs: async ({ context }, use) => {
-    await use(async (username: string) => {
+  loginAs: async ({ context, sessionCache }, use) => {
+    await use(async (role: string) => {
+      let cookies = sessionCache.get(role);
+      if (!cookies) {
+        cookies = buildSessionFor(role);
+        sessionCache.set(role, cookies);
+      }
       await context.clearCookies();
-      await context.addCookies(sessionCookiesFor(username));
+      await context.addCookies(cookies);
     });
   },
   ctx: async ({}, use) => use(new ScenarioContext()),
 
-  /**
-   * worker 级认证复用：每个 worker 进程只构建一次会话，本 worker 的所有场景共享。
-   * 真实项目在此处调用登录 API 换 token（用 playwright.request），再组装成
-   * cookies/localStorage。多账号隔离时按 workerInfo.parallelIndex 分配账号。
-   */
-  workerStorageState: [
-    async ({}, use) => {
-      await use({ cookies: sessionCookiesFor(env.username), origins: [] });
-    },
+  sessionCache: [
+    async ({}, use) => use(new Map<string, SessionCookie[]>()),
     { scope: 'worker' },
   ],
-
-  /**
-   * 场景的浏览器上下文默认携带已登录会话（storageState 是 Playwright 的
-   * option fixture，context 创建时消费它）。打 @guest 标签的场景保持未登录
-   * ——登录功能本身的测试必须从干净状态开始。
-   */
-  storageState: async ({ workerStorageState, $tags }, use) => {
-    if ($tags.includes('@guest')) {
-      await use(undefined);
-    } else {
-      await use(workerStorageState);
-    }
-  },
 });
+
+/** 基座级步骤定义用（所有领域的场景都可用），如 steps/auth.steps.ts 的角色化登录 */
+export const { Given, When, Then } = createBdd(baseTest);

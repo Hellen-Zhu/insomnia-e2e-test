@@ -7,7 +7,8 @@ Feature: Trade maker-checker approval
   steps through the scenario context.
 
   Scenario: Maker creates a trade and checker approves it
-    Given the maker is on the trade portal
+    Given I am logged in as "maker"
+    And I am on the trade portal
     When the maker creates a new trade:
       | counterparty | ACME Bank                        |
       | portfolio    | FX Derivatives                   |

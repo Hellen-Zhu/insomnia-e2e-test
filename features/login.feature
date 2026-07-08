@@ -1,16 +1,16 @@
-@login @guest
+@login
 Feature: User Login
   As a user
   I want to log into the system
-  So that I can use the shopping features
+  So that I can access my workspace
 
   Background:
     Given I am on the login page
 
   @smoke
-  Scenario: Login successfully with valid credentials
-    When I login with valid credentials
-    Then I should see the products page
+  Scenario: Login successfully with a valid role
+    When I login as "maker"
+    Then I should be logged in
 
   Scenario Outline: Login fails with invalid credentials
     When I login with username "<username>" and password "<password>"

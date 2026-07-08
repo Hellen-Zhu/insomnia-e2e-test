@@ -1,10 +1,9 @@
 import type { DataTable } from 'playwright-bdd';
-import { env } from '../config/env';
 import type { NewTradeRequest } from '../flows/trade.flow';
 import { Given, When, Then } from '../fixtures/trade.fixtures';
 
-Given('the maker is on the trade portal', async ({ loginAs, tradePortalPage }) => {
-  await loginAs(env.makerUsername);
+/** 登录前置用基座步骤 `Given I am logged in as "<role>"`，此步只负责到达 */
+Given('I am on the trade portal', async ({ tradePortalPage }) => {
   await tradePortalPage.open();
   await tradePortalPage.expectOpened();
 });
@@ -23,9 +22,9 @@ Then(
   },
 );
 
-/** 切到 checker 身份后回到 portal——同一浏览器会话，ctx 里的 tradeId 继续可用 */
+/** 切到 checker 角色后回到 portal——同一浏览器会话，ctx 里的 tradeId 继续可用 */
 When('the checker approves the trade', async ({ loginAs, tradePortalPage, tradeFlow, ctx }) => {
-  await loginAs(env.checkerUsername);
+  await loginAs('checker');
   await tradePortalPage.open();
   await tradePortalPage.expectOpened();
   await tradeFlow.approveTrade(ctx.require('tradeId'));
