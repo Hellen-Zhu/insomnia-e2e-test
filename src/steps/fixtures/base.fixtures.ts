@@ -1,13 +1,6 @@
-import { test as base, createBdd } from 'playwright-bdd';
-import { LoginPage } from '../pages/login.page';
-import { InventoryPage } from '../pages/inventory.page';
-import { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
-import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
-import { NewTradePage } from '../pages/new-trade/new-trade.page';
-import { LoginFlow } from '../flows/login.flow';
-import { TradeFlow } from '../flows/trade.flow';
-import { UserApi } from '../api/user.api';
-import { env } from '../config/env';
+import { test as base } from 'playwright-bdd';
+import { UserApi } from '../../api/user.api';
+import { env } from '../../config/env';
 import type { APIRequestContext, BrowserContextOptions } from '@playwright/test';
 
 type StorageState = BrowserContextOptions['storageState'];
@@ -30,23 +23,18 @@ function sessionCookiesFor(username: string): SessionCookie[] {
 }
 
 /**
- * 场景上下文：同一场景内跨步骤传递运行时产生的数据。
+ * 场景内跨步骤传递的数据键。基座只定义空集，
+ * 各领域 fixtures 通过 declaration merging 注入自己的键：
  *
- * test 作用域 fixture 保证：每个场景一个全新实例（步骤间共享），
- * 场景之间/并行 worker 之间互不可见（数据隔离）。
- * 禁止用 steps 文件里的模块级变量共享状态——那会在同一 worker
- * 的场景之间泄漏，是并行模式下最典型的 flaky 来源。
+ *   declare module '../fixtures/base.fixtures' {
+ *     interface ScenarioData { tradeId: string }
+ *   }
  *
- * 需要传递新数据时在此类上加类型化字段，不要用 any/Map 逃逸类型检查。
+ * 键声明住在领域文件里，但运行时仍是同一个 ctx 对象——
+ * 跨领域的数据流（如 tradeId 从交易域流向报表域）不受拆分影响。
  */
-/**
- * 场景内跨步骤传递的数据字段全部在此声明——这是唯一需要维护的地方。
- * 新增一份数据 = 加一行键声明，读写自动获得类型推导与检查。
- */
-export interface ScenarioData {
-  /** maker 创建交易后从接口响应捕获的 tradeId */
-  tradeId: string;
-}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ScenarioData {}
 
 export class ScenarioContext {
   private readonly data: Partial<ScenarioData> = {};
@@ -91,21 +79,12 @@ export class ScenarioContext {
 }
 
 /**
- * POM 依赖注入中心。
- *
- * 步骤定义在参数中声明需要的页面对象（如 `async ({ loginPage }) => ...`），
- * Playwright 按需懒加载实例化。新增页面对象只需：
- *   1. 在 src/pages/ 下创建页面类
- *   2. 在下方 fixtures 中注册一行
+ * 基座 fixtures：与具体业务域无关的横切能力。
+ * 领域 fixtures（trade/product/...）从 baseTest 继续 extend——
+ * playwright-bdd 要求同一 scenario 的步骤来自同一实例或其祖先，
+ * 因此领域之间不要互相依赖，只依赖基座。
  */
-type PageFixtures = {
-  loginPage: LoginPage;
-  inventoryPage: InventoryPage;
-  tradePortalPage: TradePortalPage;
-  tradeDetailPage: TradeDetailPage;
-  newTradePage: NewTradePage;
-  loginFlow: LoginFlow;
-  tradeFlow: TradeFlow;
+type BaseFixtures = {
   apiContext: APIRequestContext;
   userApi: UserApi;
   /** 场景内切换登录角色（maker/checker 等），同一浏览器会话、同一套页面对象 */
@@ -117,17 +96,7 @@ type WorkerFixtures = {
   workerStorageState: StorageState;
 };
 
-export const test = base.extend<PageFixtures, WorkerFixtures>({
-  loginPage: async ({ page }, use) => use(new LoginPage(page)),
-  inventoryPage: async ({ page }, use) => use(new InventoryPage(page)),
-  tradePortalPage: async ({ page }, use) => use(new TradePortalPage(page)),
-  tradeDetailPage: async ({ page }, use) => use(new TradeDetailPage(page)),
-  newTradePage: async ({ page }, use) => use(new NewTradePage(page)),
-  /* Flow 依赖 Page fixture 组装，同样按场景实例化 */
-  loginFlow: async ({ loginPage, inventoryPage }, use) =>
-    use(new LoginFlow(loginPage, inventoryPage)),
-  tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
-    use(new TradeFlow(tradePortalPage, newTradePage)),
+export const baseTest = base.extend<BaseFixtures, WorkerFixtures>({
   /* API 造数：独立于浏览器的 HTTP 上下文（可配 API_BASE_URL 与鉴权头） */
   apiContext: async ({ playwright }, use) => {
     const apiContext = await playwright.request.newContext({ baseURL: env.apiBaseUrl });
@@ -150,10 +119,8 @@ export const test = base.extend<PageFixtures, WorkerFixtures>({
 
   /**
    * worker 级认证复用：每个 worker 进程只构建一次会话，本 worker 的所有场景共享。
-   *
    * 真实项目在此处调用登录 API 换 token（用 playwright.request），再组装成
-   * cookies/localStorage。saucedemo 的会话就是一个 cookie，直接构造。
-   * 多账号隔离时按 workerInfo.parallelIndex 分配账号。
+   * cookies/localStorage。多账号隔离时按 workerInfo.parallelIndex 分配账号。
    */
   workerStorageState: [
     async ({}, use) => {
@@ -175,5 +142,3 @@ export const test = base.extend<PageFixtures, WorkerFixtures>({
     }
   },
 });
-
-export const { Given, When, Then } = createBdd(test);

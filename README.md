@@ -36,9 +36,8 @@ ENV=staging npm test    # 切换环境
 │   ├── pages/          # 页面层：POM，封装定位器与页面行为
 │   ├── components/     # 组件层：设计系统组件对象（宿主→内部元素的映射）
 │   ├── steps/          # 步骤层：Gherkin ↔ flow/page 的薄胶水
-│   │   └── fixtures.ts # POM 依赖注入中心
-│   ├── config/         # 配置层：环境相关配置（随 ENV 变化）
-│   └── utils/          # 纯函数工具（数据加载、格式化等，与页面无关）
+│   │   └── fixtures/   # DI 中心：base（横切）+ 各业务域一个文件
+│   └── config/         # 配置层：环境相关配置（随 ENV 变化）
 ├── test-data/          # 外部测试数据（JSON），Gherkin 中以业务别名引用
 ├── env/                # 各环境变量文件 (.env.dev / .env.staging ...)
 ├── playwright.config.ts
@@ -74,11 +73,17 @@ export class ProfilePage extends BasePage {
 }
 ```
 
-2. 在 `src/steps/fixtures.ts` 注册一行：
+2. 在所属业务域的 fixtures 文件（`src/steps/fixtures/<domain>.fixtures.ts`）注册一行：
 
 ```ts
 profilePage: async ({ page }, use) => use(new ProfilePage(page)),
 ```
+
+新业务域则新建 `<domain>.fixtures.ts`：从 `baseTest` extend 并导出
+`createBdd(test)` 的 Given/When/Then，该域的 steps 从这里导入。
+约束（playwright-bdd）：**一个 scenario 的步骤必须来自同一个 test 实例
+或其祖先**——领域之间不要互相 extend，只从基座 extend；跨域场景需要
+时另建一个合并两域的 test 实例。
 
 ### 新增一个场景
 
@@ -140,7 +145,7 @@ Given('a registered user {string} exists', async ({ userApi, ctx }, alias: strin
 
 - 所有请求统一断言 2xx（`ApiClient` 基类内置）——造数失败立刻炸，不让 UI 步骤跑在残缺数据上
 - API 地址走 `env/.env.*` 的 `API_BASE_URL`（未配置回退 `BASE_URL`）
-- 鉴权：在 `fixtures.ts` 的 `apiContext` 处加 `extraHTTPHeaders`，token 用 worker 作用域 fixture 获取（每 worker 登录一次）
+- 鉴权：在 `fixtures/base.fixtures.ts` 的 `apiContext` 处加 `extraHTTPHeaders`，token 用 worker 作用域 fixture 获取（每 worker 登录一次）
 - 层级关系：steps/flows/hooks 可调 api 层；api 层不感知页面
 - `user.api.ts` 是模板，按真实后端契约调整路径与类型
 
@@ -251,7 +256,7 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 
 ### 跨步骤共享状态与数据隔离
 
-同一机制解决两件事：`src/steps/fixtures.ts` 中的 `ScenarioContext`（test 作用域 fixture）。
+同一机制解决两件事：`src/steps/fixtures/base.fixtures.ts` 中的 `ScenarioContext`（test 作用域 fixture）。
 
 - **共享**：步骤 A 写入 `ctx.xxx`，步骤 B 读取——每个场景内是同一个实例
 - **隔离**：场景结束实例销毁，场景之间、并行 worker 之间互不可见
@@ -267,8 +272,10 @@ Then('the new trade should appear ...', async ({ tradeFlow, ctx }) => {
 });
 ```
 
-键集中声明在 `ScenarioData` interface 中，`set/get/require` 是泛型方法——
-**新增一份跨步骤数据 = 在 interface 加一行**，读写自动获得类型推导；
+键声明在各领域 fixtures 文件中通过 declaration merging 注入基座的
+`ScenarioData` interface（见 `trade.fixtures.ts` 的 `declare module`），
+`set/get/require` 是泛型方法——**新增一份跨步骤数据 = 在本域文件加一行键声明**，
+读写自动获得类型推导；ctx 对象运行时仍是同一个，跨域数据流不受拆分影响；
 `require()` 在数据未产生时立即抛出可诊断错误，而非让 `undefined` 渗透到后续断言。
 
 **红线：禁止用 steps 文件的模块级变量共享状态**——同一 worker 会串场景，并行模式下必然 flaky。

@@ -1,5 +1,5 @@
 import { env } from '../config/env';
-import { Given, When, Then } from './fixtures';
+import { Given, When, Then } from './fixtures/login.fixtures';
 
 Given('I am on the login page', async ({ loginPage }) => {
   await loginPage.open();

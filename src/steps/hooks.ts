@@ -1,5 +1,5 @@
 import { createBdd } from 'playwright-bdd';
-import { test } from './fixtures';
+import { baseTest } from './fixtures/base.fixtures';
 
 /**
  * 场景级/worker 级钩子。
@@ -12,7 +12,8 @@ import { test } from './fixtures';
  * 执行顺序：fixture setup → Before → Background → 步骤 → After → fixture teardown
  * 注意：BeforeAll/AfterAll 是"每个 worker 一次"，不是全局一次。
  */
-const { Before, After } = createBdd(test);
+/* 挂在基座实例上：hook 只用基座 fixtures（ctx/$testInfo），对所有领域的场景生效 */
+const { Before, After } = createBdd(baseTest);
 
 /** 标签驱动示例：@mobile 场景切换到手机视口，其余场景不受影响 */
 Before({ tags: '@mobile' }, async ({ page }) => {
