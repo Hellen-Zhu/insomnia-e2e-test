@@ -163,6 +163,62 @@ worker 启动 → 构建会话一次（真实项目：调登录 API 换 token）
   多账号并行隔离按 `workerInfo.parallelIndex` 分配账号
 - 场景之间的隔离不受影响：共享的只是"会话凭证"，每个场景仍是全新 browser context
 
+### Retry 与 flaky 治理
+
+重试配置的三个层级：
+
+```ts
+retries: process.env.CI ? 1 : 0          // playwright.config.ts 全局默认（已配）
+```
+```gherkin
+@retries:2                                # playwright-bdd 特殊标签，场景/feature 级
+Scenario: 依赖第三方回调的场景
+```
+```bash
+npx playwright test --retries=3           # 命令行临时覆盖
+```
+
+flaky 治理流程（retry 是止血不是治病）：
+
+1. **显形**：重试后才过的用例在报告中标为 `flaky`（黄色），定期审计
+2. **复现**：`npx playwright test --repeat-each=10 -g "场景名"` 把偶发变必发，配合 trace 定位
+3. **修根因**：四大来源——即时快照断言（用 `expect().toBeVisible()` 替代 `isVisible()`）、
+   固定 sleep、并行数据互踩、动画未稳定
+4. **隔离**：短期修不好的打 `@flaky`，CI 主流程 `bddgen --tags "not @flaky"` 排除，
+   隔离区单独跑不阻塞合并，修复后放回
+
+### 多角色场景（maker/checker 四眼审批）
+
+一个场景里需要多个角色时（maker 创建 → checker 审批），每个角色是一个**独立的
+browser context**（登录态完全隔离，场景内同时存活）。框架提供 `maker`/`checker`
+角色会话 fixture（`RoleSession`），账号来自 `MAKER_USERNAME`/`CHECKER_USERNAME`：
+
+```gherkin
+Scenario: Trade requires four-eyes approval
+  When the maker creates a trade of 1000 "USD"
+  Then the maker should see the trade in status "Pending Approval"
+  When the checker approves the trade
+  Then the checker should see the trade in status "Approved"
+```
+
+```ts
+When('the maker creates a trade of {int} {string}', async ({ maker, ctx }, amount, ccy) => {
+  ctx.tradeId = await maker.tradePage.createTrade(amount, ccy);   // 产物存 ctx
+  ctx.addCleanup(() => tradeApi.deleteTrade(ctx.tradeId!));       // 登记清理
+});
+
+When('the checker approves the trade', async ({ checker, ctx }) => {
+  await checker.approvalPage.approve(ctx.tradeId!);               // 另一会话取用
+});
+```
+
+要点：
+
+- 角色间传递业务产物（tradeId）走 `ctx`；在 `ScenarioContext` 上加类型化字段
+- `RoleSession` 上挂该角色使用的页面对象（模板挂的是 saucedemo 页面，按真实业务替换）
+- 默认注入的 `page`/会话与角色会话互不相干；纯多角色场景直接不使用默认 `page` 即可
+- 角色账号建议配合 API 造数：数据准备走 API，UI 只走"创建→审批"这条被验证的路径
+
 ### Hooks（Before/After）
 
 位置：`src/steps/hooks.ts`。执行顺序：

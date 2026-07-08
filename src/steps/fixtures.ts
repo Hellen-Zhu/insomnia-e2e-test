@@ -7,9 +7,43 @@ import { LoginFlow } from '../flows/login.flow';
 import { CheckoutFlow } from '../flows/checkout.flow';
 import { UserApi } from '../api/user.api';
 import { env } from '../config/env';
-import type { APIRequestContext, BrowserContextOptions } from '@playwright/test';
+import type { APIRequestContext, Browser, BrowserContextOptions, Page } from '@playwright/test';
 
 type StorageState = BrowserContextOptions['storageState'];
+
+/** 构造某账号的已登录会话（真实项目：改为调登录 API 换 token 后组装） */
+function sessionStateFor(username: string): StorageState {
+  return {
+    cookies: [
+      {
+        name: 'session-username',
+        value: username,
+        domain: new URL(env.baseUrl).hostname,
+        path: '/',
+        expires: -1,
+        httpOnly: false,
+        secure: true,
+        sameSite: 'Lax' as const,
+      },
+    ],
+    origins: [],
+  };
+}
+
+/**
+ * 角色会话：多角色场景（maker/checker 四眼审批等）中，每个角色一个
+ * 独立的 browser context（登录态完全隔离）+ 该角色使用的页面对象集。
+ * 真实项目：把 inventoryPage 换成 tradePage/approvalPage 等业务页面。
+ */
+export class RoleSession {
+  readonly inventoryPage: InventoryPage;
+  readonly cartPage: CartPage;
+
+  constructor(readonly page: Page) {
+    this.inventoryPage = new InventoryPage(page);
+    this.cartPage = new CartPage(page);
+  }
+}
 
 /**
  * 场景上下文：同一场景内跨步骤传递运行时产生的数据。
@@ -61,8 +95,20 @@ type PageFixtures = {
   checkoutFlow: CheckoutFlow;
   apiContext: APIRequestContext;
   userApi: UserApi;
+  maker: RoleSession;
+  checker: RoleSession;
   ctx: ScenarioContext;
 };
+
+/** 为指定账号开一个独立的已登录 browser context（多角色场景用） */
+async function newRoleSession(browser: Browser, username: string) {
+  const context = await browser.newContext({
+    baseURL: env.baseUrl,
+    storageState: sessionStateFor(username),
+  });
+  const page = await context.newPage();
+  return { session: new RoleSession(page), context };
+}
 
 type WorkerFixtures = {
   workerStorageState: StorageState;
@@ -85,6 +131,17 @@ export const test = base.extend<PageFixtures, WorkerFixtures>({
     await apiContext.dispose();
   },
   userApi: async ({ apiContext }, use) => use(new UserApi(apiContext)),
+  /* 多角色会话：各自独立 context，场景内可同时存活、交替操作 */
+  maker: async ({ browser }, use) => {
+    const { session, context } = await newRoleSession(browser, env.makerUsername);
+    await use(session);
+    await context.close();
+  },
+  checker: async ({ browser }, use) => {
+    const { session, context } = await newRoleSession(browser, env.checkerUsername);
+    await use(session);
+    await context.close();
+  },
   ctx: async ({}, use) => use(new ScenarioContext()),
 
   /**
