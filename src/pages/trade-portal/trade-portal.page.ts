@@ -1,3 +1,4 @@
+import { expect } from '@playwright/test';
 import { BasePage } from '../base.page';
 import { TopNavSection } from './top-nav.section';
 import { BottomNavSection } from './bottom-nav.section';
@@ -16,7 +17,7 @@ import { CheckerActionDialog } from './checker-action.dialog';
  * testIdAttribute 与你们前端一致（data-testid / data-test）。
  */
 export class TradePortalPage extends BasePage {
-  readonly path = '/trade-portal'; // 按真实路由调整
+  readonly path = '/trades';
 
   readonly topNav = new TopNavSection(this.page.getByTestId('layout-topnav-container'));
   readonly bottomNav = new BottomNavSection(this.page.getByTestId('bottomnav-container'));
@@ -38,6 +39,16 @@ export class TradePortalPage extends BasePage {
   private readonly refreshBtn = this.page.getByTestId('trades-refresh-btn');
   private readonly newTradeBtn = this.page.getByTestId('trades-new-trade-btn');
   private readonly bulkActionConfirmBtn = this.page.getByTestId('bulk-action-dialog-confirm-btn');
+
+  /**
+   * 登录落地断言：URL 到达 /trades 且 blotter 渲染完成。
+   * URL 就位不代表数据区就位（SPA 先路由后取数），两个断言缺一不可。
+   * 默认视图若不是 all trades，改用对应的 blotter 实例。
+   */
+  async expectLanded(): Promise<void> {
+    await expect(this.page).toHaveURL(/\/trades/);
+    await this.allTradesBlotter.expectVisible();
+  }
 
   async refresh(): Promise<void> {
     await this.refreshBtn.click();
