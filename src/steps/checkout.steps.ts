@@ -3,10 +3,8 @@ import { env } from '../config/env';
 import { getShippingProfile } from '../utils/test-data';
 import { Given, When, Then } from './fixtures';
 
-Given('I am logged in', async ({ loginPage, inventoryPage }) => {
-  await loginPage.open();
-  await loginPage.login(env.username, env.password);
-  await inventoryPage.expectOpened();
+Given('I am logged in', async ({ loginFlow }) => {
+  await loginFlow.loginAs(env.username, env.password);
 });
 
 When(
@@ -50,15 +48,9 @@ Then('the cart should contain all added products', async ({ cartPage, ctx }) => 
   }
 });
 
-When(
-  'I checkout using the {string} shipping profile',
-  async ({ cartPage, checkoutPage }, profileName: string) => {
-    const profile = getShippingProfile(profileName);
-    await cartPage.startCheckout();
-    await checkoutPage.fillShippingInfo(profile.firstName, profile.lastName, profile.postalCode);
-    await checkoutPage.confirmOrder();
-  },
-);
+When('I checkout using the {string} shipping profile', async ({ checkoutFlow }, profileName: string) => {
+  await checkoutFlow.checkoutWith(getShippingProfile(profileName));
+});
 
 Then('the order should be completed successfully', async ({ checkoutPage }) => {
   await checkoutPage.expectOrderCompleted();

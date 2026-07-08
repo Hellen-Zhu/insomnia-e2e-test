@@ -32,9 +32,10 @@ ENV=staging npm test    # 切换环境
 ```
 ├── features/           # 特性层：Gherkin 场景（业务语言）
 ├── src/
+│   ├── flows/          # 流程层：跨页面业务流程编排（登录、下单）
 │   ├── pages/          # 页面层：POM，封装定位器与页面行为
 │   ├── components/     # 组件层：设计系统组件对象（宿主→内部元素的映射）
-│   ├── steps/          # 步骤层：Gherkin ↔ POM 的薄胶水
+│   ├── steps/          # 步骤层：Gherkin ↔ flow/page 的薄胶水
 │   │   └── fixtures.ts # POM 依赖注入中心
 │   ├── config/         # 配置层：环境相关配置（随 ENV 变化）
 │   └── utils/          # 纯函数工具（数据加载、格式化等，与页面无关）
@@ -44,13 +45,17 @@ ENV=staging npm test    # 切换环境
 └── .github/workflows/  # CI
 ```
 
-**分层纪律（可维护性的关键）：**
+**分层纪律（可维护性的关键）——依赖只允许向下：**
 
-| 层 | 职责 | 禁止 |
-|---|---|---|
-| `features/` | 纯业务语言描述场景 | 选择器、URL 等技术细节 |
-| `src/steps/` | 一行 Gherkin ↔ 一次 POM 方法调用 | 定位器、业务逻辑 |
-| `src/pages/` | 定位器 + 页面行为 + 页面级断言 | 感知 Gherkin / 测试流程 |
+| 层 | 职责 | 可以调用 | 禁止 |
+|---|---|---|---|
+| `features/` | 纯业务语言描述场景 | — | 选择器、URL 等技术细节 |
+| `src/steps/` | 一行 Gherkin ↔ 一次调用 | flow、page | component、Playwright 原语、业务逻辑 |
+| `src/flows/` | 跨页面业务流程编排 + 到达断言 | page | 持有定位器、感知 Gherkin |
+| `src/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page、感知 Gherkin |
+| `src/components/` | 设计系统组件（宿主→内部） | 原语 | page、flow |
+
+**step 调 flow 还是 page？** 这行 Gherkin 跨页面（`I am logged in`）→ flow；单页动作（`I open the cart`）→ page。
 
 ## 如何扩展
 

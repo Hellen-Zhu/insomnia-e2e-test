@@ -3,6 +3,8 @@ import { LoginPage } from '../pages/login.page';
 import { InventoryPage } from '../pages/inventory.page';
 import { CartPage } from '../pages/cart.page';
 import { CheckoutPage } from '../pages/checkout.page';
+import { LoginFlow } from '../flows/login.flow';
+import { CheckoutFlow } from '../flows/checkout.flow';
 
 /**
  * 场景上下文：同一场景内跨步骤传递运行时产生的数据。
@@ -32,6 +34,8 @@ type PageFixtures = {
   inventoryPage: InventoryPage;
   cartPage: CartPage;
   checkoutPage: CheckoutPage;
+  loginFlow: LoginFlow;
+  checkoutFlow: CheckoutFlow;
   ctx: ScenarioContext;
 };
 
@@ -40,6 +44,11 @@ export const test = base.extend<PageFixtures>({
   inventoryPage: async ({ page }, use) => use(new InventoryPage(page)),
   cartPage: async ({ page }, use) => use(new CartPage(page)),
   checkoutPage: async ({ page }, use) => use(new CheckoutPage(page)),
+  /* Flow 依赖 Page fixture 组装，同样按场景实例化 */
+  loginFlow: async ({ loginPage, inventoryPage }, use) =>
+    use(new LoginFlow(loginPage, inventoryPage)),
+  checkoutFlow: async ({ cartPage, checkoutPage }, use) =>
+    use(new CheckoutFlow(cartPage, checkoutPage)),
   ctx: async ({}, use) => use(new ScenarioContext()),
 });
 
