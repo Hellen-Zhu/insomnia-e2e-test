@@ -5,6 +5,9 @@ import { CartPage } from '../pages/cart.page';
 import { CheckoutPage } from '../pages/checkout.page';
 import { LoginFlow } from '../flows/login.flow';
 import { CheckoutFlow } from '../flows/checkout.flow';
+import { UserApi } from '../api/user.api';
+import { env } from '../config/env';
+import type { APIRequestContext } from '@playwright/test';
 
 /**
  * 场景上下文：同一场景内跨步骤传递运行时产生的数据。
@@ -19,6 +22,24 @@ import { CheckoutFlow } from '../flows/checkout.flow';
 export class ScenarioContext {
   /** 本场景中已加入购物车的商品名 */
   readonly addedProducts: string[] = [];
+
+  private readonly cleanups: Array<() => Promise<void>> = [];
+
+  /** 登记清理动作（通常在 API 造数后立刻登记），场景结束后自动执行 */
+  addCleanup(cleanup: () => Promise<void>): void {
+    this.cleanups.push(cleanup);
+  }
+
+  /** 由 After hook 调用：按登记的逆序清理，单条失败不阻断其余清理 */
+  async runCleanups(): Promise<void> {
+    for (const cleanup of this.cleanups.reverse()) {
+      try {
+        await cleanup();
+      } catch (error) {
+        console.warn('Cleanup failed (continuing):', error);
+      }
+    }
+  }
 }
 
 /**
@@ -36,6 +57,8 @@ type PageFixtures = {
   checkoutPage: CheckoutPage;
   loginFlow: LoginFlow;
   checkoutFlow: CheckoutFlow;
+  apiContext: APIRequestContext;
+  userApi: UserApi;
   ctx: ScenarioContext;
 };
 
@@ -49,6 +72,13 @@ export const test = base.extend<PageFixtures>({
     use(new LoginFlow(loginPage, inventoryPage)),
   checkoutFlow: async ({ cartPage, checkoutPage }, use) =>
     use(new CheckoutFlow(cartPage, checkoutPage)),
+  /* API 造数：独立于浏览器的 HTTP 上下文（可配 API_BASE_URL 与鉴权头） */
+  apiContext: async ({ playwright }, use) => {
+    const apiContext = await playwright.request.newContext({ baseURL: env.apiBaseUrl });
+    await use(apiContext);
+    await apiContext.dispose();
+  },
+  userApi: async ({ apiContext }, use) => use(new UserApi(apiContext)),
   ctx: async ({}, use) => use(new ScenarioContext()),
 });
 

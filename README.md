@@ -121,6 +121,29 @@ export class ProfilePage extends BasePage {
 
 （注：示例站 saucedemo 的 `data-test` 直接打在原生元素上，无宿主包裹，因此示例页面对象未使用组件层。）
 
+### API 造数（test data seeding）
+
+定位：用接口把系统推到测试前置状态，**不做 API 功能测试**。基于 Playwright 内置的
+`APIRequestContext`（无需 axios）。位置：`src/api/`，每个业务域一个客户端文件。
+
+标准用法——Given 步骤造数 + 立刻登记清理，After hook 自动收尾：
+
+```ts
+Given('a registered user {string} exists', async ({ userApi, ctx }, alias: string) => {
+  const user = await userApi.createUser(getUserTemplate(alias));   // 造数
+  ctx.addCleanup(() => userApi.deleteUser(user.id));               // 谁造谁登记
+});
+// 场景结束（无论成败）After hook 按逆序执行清理，单条失败不阻断其余
+```
+
+约定：
+
+- 所有请求统一断言 2xx（`ApiClient` 基类内置）——造数失败立刻炸，不让 UI 步骤跑在残缺数据上
+- API 地址走 `env/.env.*` 的 `API_BASE_URL`（未配置回退 `BASE_URL`）
+- 鉴权：在 `fixtures.ts` 的 `apiContext` 处加 `extraHTTPHeaders`，token 用 worker 作用域 fixture 获取（每 worker 登录一次）
+- 层级关系：steps/flows/hooks 可调 api 层；api 层不感知页面
+- `user.api.ts` 是模板，按真实后端契约调整路径与类型
+
 ### Hooks（Before/After）
 
 位置：`src/steps/hooks.ts`。执行顺序：

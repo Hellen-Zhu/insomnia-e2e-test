@@ -28,3 +28,8 @@ After(async ({ ctx, $testInfo }) => {
     });
   }
 });
+
+/** 数据清理：执行本场景登记过的清理动作（API 造数的配套收尾），成功失败都跑 */
+After(async ({ ctx }) => {
+  await ctx.runCleanups();
+});

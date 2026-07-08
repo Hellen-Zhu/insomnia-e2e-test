@@ -27,6 +27,8 @@ export const env = {
   /** 当前环境名: dev / staging / prod */
   name: ENV_NAME,
   baseUrl: required('BASE_URL'),
+  /** 造数 API 的地址，未配置时回退到 baseUrl */
+  apiBaseUrl: process.env.API_BASE_URL ?? required('BASE_URL'),
   username: required('SAUCE_USERNAME'),
   password: required('SAUCE_PASSWORD'),
 } as const;
