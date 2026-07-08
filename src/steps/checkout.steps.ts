@@ -3,8 +3,15 @@ import { env } from '../config/env';
 import { getShippingProfile } from '../utils/test-data';
 import { Given, When, Then } from './fixtures';
 
-Given('I am logged in', async ({ loginFlow }) => {
-  await loginFlow.loginAs(env.username, env.password);
+/** 会话已由 workerStorageState 注入（API 化登录），此处只需直达并确认到位 */
+Given('I am logged in', async ({ inventoryPage }) => {
+  await inventoryPage.open();
+  await inventoryPage.expectOpened();
+});
+
+/** 需要以特定身份走 UI 登录时使用（saucedemo 所有用户共享同一密码） */
+Given('I am logged in as {string}', async ({ loginFlow }, username: string) => {
+  await loginFlow.loginAs(username, env.password);
 });
 
 When(

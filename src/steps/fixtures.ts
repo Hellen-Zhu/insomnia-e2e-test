@@ -7,7 +7,9 @@ import { LoginFlow } from '../flows/login.flow';
 import { CheckoutFlow } from '../flows/checkout.flow';
 import { UserApi } from '../api/user.api';
 import { env } from '../config/env';
-import type { APIRequestContext } from '@playwright/test';
+import type { APIRequestContext, BrowserContextOptions } from '@playwright/test';
+
+type StorageState = BrowserContextOptions['storageState'];
 
 /**
  * 场景上下文：同一场景内跨步骤传递运行时产生的数据。
@@ -62,7 +64,11 @@ type PageFixtures = {
   ctx: ScenarioContext;
 };
 
-export const test = base.extend<PageFixtures>({
+type WorkerFixtures = {
+  workerStorageState: StorageState;
+};
+
+export const test = base.extend<PageFixtures, WorkerFixtures>({
   loginPage: async ({ page }, use) => use(new LoginPage(page)),
   inventoryPage: async ({ page }, use) => use(new InventoryPage(page)),
   cartPage: async ({ page }, use) => use(new CartPage(page)),
@@ -80,6 +86,47 @@ export const test = base.extend<PageFixtures>({
   },
   userApi: async ({ apiContext }, use) => use(new UserApi(apiContext)),
   ctx: async ({}, use) => use(new ScenarioContext()),
+
+  /**
+   * worker 级认证复用：每个 worker 进程只构建一次会话，本 worker 的所有场景共享。
+   *
+   * 真实项目在此处调用登录 API 换 token（用 playwright.request），再组装成
+   * cookies/localStorage。saucedemo 的会话就是一个 cookie，直接构造。
+   * 多账号隔离时按 workerInfo.parallelIndex 分配账号。
+   */
+  workerStorageState: [
+    async ({}, use) => {
+      await use({
+        cookies: [
+          {
+            name: 'session-username',
+            value: env.username,
+            domain: new URL(env.baseUrl).hostname,
+            path: '/',
+            expires: -1,
+            httpOnly: false,
+            secure: true,
+            sameSite: 'Lax' as const,
+          },
+        ],
+        origins: [],
+      });
+    },
+    { scope: 'worker' },
+  ],
+
+  /**
+   * 场景的浏览器上下文默认携带已登录会话（storageState 是 Playwright 的
+   * option fixture，context 创建时消费它）。打 @guest 标签的场景保持未登录
+   * ——登录功能本身的测试必须从干净状态开始。
+   */
+  storageState: async ({ workerStorageState, $tags }, use) => {
+    if ($tags.includes('@guest')) {
+      await use(undefined);
+    } else {
+      await use(workerStorageState);
+    }
+  },
 });
 
 export const { Given, When, Then } = createBdd(test);

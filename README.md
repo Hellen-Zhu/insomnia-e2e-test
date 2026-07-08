@@ -144,6 +144,25 @@ Given('a registered user {string} exists', async ({ userApi, ctx }, alias: strin
 - 层级关系：steps/flows/hooks 可调 api 层；api 层不感知页面
 - `user.api.ts` 是模板，按真实后端契约调整路径与类型
 
+### 登录 API 化与 worker 级会话复用
+
+套件默认**不走 UI 登录**：`workerStorageState`（worker 作用域 fixture）每个 worker
+只构建一次会话，覆写的 `storageState` 让每个场景的浏览器上下文创建时即已登录。
+
+```
+worker 启动 → 构建会话一次（真实项目：调登录 API 换 token）
+  ├── 场景 1 的 context 带会话创建   ← 直接访问业务页
+  ├── 场景 2 的 context 带会话创建
+  └── ...
+```
+
+- **`@guest` 标签** = 不注入会话：登录功能本身的测试（`login.feature`）从未登录状态开始
+- `Given I am logged in`：只做"直达业务页 + 到位断言"，不再走登录表单
+- `Given I am logged in as {string}`：保留的 UI 登录通道，用于以特定身份登录的场景
+- 接入真实项目：在 `workerStorageState` 中调登录 API 换 token 组装 cookies/localStorage；
+  多账号并行隔离按 `workerInfo.parallelIndex` 分配账号
+- 场景之间的隔离不受影响：共享的只是"会话凭证"，每个场景仍是全新 browser context
+
 ### Hooks（Before/After）
 
 位置：`src/steps/hooks.ts`。执行顺序：
