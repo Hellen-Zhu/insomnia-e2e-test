@@ -5,6 +5,8 @@ import { BottomNavSection } from './bottom-nav.section';
 import { TransactionFilterSection } from './transaction-filter.section';
 import { BlotterView } from './blotter-view.component';
 import { CheckerActionDialog } from './checker-action.dialog';
+import { DynamicActionDialog } from './dynamic-action.dialog';
+import { TradeChangeConfirmationDialog } from './trade-change-confirmation.dialog';
 
 /**
  * Trade Portal 页面（真实项目参考实现）。
@@ -34,6 +36,16 @@ export class TradePortalPage extends BasePage {
   /** blotter 行 approve/reject 触发的确认弹窗（页面级浮层） */
   readonly checkerActionDialog = new CheckerActionDialog(
     this.page.getByTestId('checker-action-dialog'),
+  );
+
+  /** 行操作（终止/novation/调仓等）共用的动态表单弹窗 */
+  readonly dynamicActionDialog = new DynamicActionDialog(
+    this.page.getByTestId('dynamic-action-dialog'),
+  );
+
+  /** 动态操作提交后的变更确认弹窗（diff + reason/comments） */
+  readonly tradeChangeConfirmation = new TradeChangeConfirmationDialog(
+    this.page.getByTestId('trade-change-confirmation-dialog'),
   );
 
   private readonly refreshBtn = this.page.getByTestId('trades-refresh-btn');

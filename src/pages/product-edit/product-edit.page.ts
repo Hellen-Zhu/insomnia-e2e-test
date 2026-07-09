@@ -50,12 +50,6 @@ export class ProductEditPage extends BasePage {
     await this.extractedFields.expectVisible();
   }
 
-  /** 编辑 composer 列表中的某一项（清单中的 {0} 占位符即此参数） */
-  async editComposerItem(itemId: string | number): Promise<void> {
-    await this.page.getByTestId(`product-composer-item-${itemId}-edit-btn`).click();
-    await this.featureEditor.expectVisible();
-  }
-
   async openSchemaHistory(): Promise<void> {
     await this.page.getByTestId('product-schema-history-btn').click();
     await this.schemaHistory.expectVisible();
