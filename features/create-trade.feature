@@ -14,26 +14,27 @@ Feature: Create trade (data-driven)
     Given I am logged in as "maker"
     And I am on the trade portal
 
-  Scenario: TRADE-001 - Create a plain FX TRF trade
-    When the maker creates a "FX_TRF" trade from the case data
-    Then the new trade should appear with status "New" and event status "pending approval"
-    And the trade row should match the case data
-
-  Scenario: TRADE-002 - Create a plain FX CO trade
-    When the maker creates a "FX_CO" trade from the case data
-    Then the new trade should appear with status "New" and event status "pending approval"
-    And the trade row should match the case data
-
-  Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
-    When the maker creates a "FX_FBS" trade from the case data
-    Then the new trade should appear with status "New" and event status "pending approval"
-    And the trade row should match the case data
-
-  Scenario Outline: Create a plain <productType> trade using the standard preset
-    When the maker creates a "<productType>" trade using the "standard" preset
+  # productType 由 Examples 列驱动；每行的 counterparty/portfolio 各自来自
+  # 该行 caseId 对应的 case 数据，可以相同也可以不同——Outline 只要求 caseId
+  # 逐行不同，保证标题可追溯、报告不去重，不要求其余字段也保持一致
+  Scenario Outline: <caseId> - Create a plain <productType> trade
+    When the maker creates a "<productType>" trade from the case data
     Then the new trade should appear with status "New" and event status "pending approval"
     And the trade row should match the case data
 
     Examples:
-      | productType |
-      | FX_FBS      |
+      | caseId    | productType |
+      | TRADE-001 | FX_TRF      |
+      | TRADE-002 | FX_CO       |
+      | TRADE-003 | FX_FBS      |
+
+  # step-in 是独立于产品类型的流程分支，固定用 FX_FBS 各测一个模式，不进 Outline
+  Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
+    When the maker creates a "FX_FBS" trade from the case data
+    Then the new trade should appear with status "New" and event status "pending approval"
+    And the trade row should match the case data
+
+  Scenario: TRADE-005 - Create an FX FBS trade with a partial step-in
+    When the maker creates a "FX_FBS" trade from the case data
+    Then the new trade should appear with status "New" and event status "pending approval"
+    And the trade row should match the case data

@@ -15,7 +15,8 @@
 #
 # 用例攒多后：把本文件原地升级为同名目录（create-trade-cases/），按功能面拆分片
 # （core.yaml、stepin.yaml…），每个分片仍是 presets + cases 同文件；loadCaseDoc
-# 自动合并并检测跨文件重复 key。注意锚点不跨文件——继承链留在同一分片内。
+# 自动合并并检测跨文件重复 key。注意锚点不跨文件——继承链留在同一分片内，
+# 但同一文件内可以跨命名空间引用（TRADE-004/005 复用 presets 的 &base）。
 
 # preset 编排：同一形状的变体共用命名空间，公共字段经锚点继承（&base / <<:），
 # 变体只声明自己的差异——改基线对手方一处，三个 preset 同步生效。
@@ -37,6 +38,8 @@ presets:
       counterparty: Initech
 
 cases:
+  # Outline 覆盖产品类型：caseId 这一列本身就让每行标题可追溯、报告不去重，
+  # 其余字段该怎么变就怎么变——不需要（也不应该）强行造成一样
   TRADE-001:
     counterparty: ACME Bank
     portfolio: FX Derivatives
@@ -46,8 +49,19 @@ cases:
     portfolio: FX Options
 
   TRADE-003:
-    counterparty: ACME Bank
-    portfolio: FX Derivatives
+    counterparty: Wayne Enterprises
+    portfolio: FX Options
+
+  # step-in 两个模式各自独立成场景（不进 Outline）：它们验证的是 step-in 流程本身，
+  # 不是产品类型差异，固定用 FX_FBS 即可
+  TRADE-004:
+    <<: *base
+    stepIn:
+      mode: full
+      counterparty: Initech
+
+  TRADE-005:
+    <<: *base
     stepIn:
       mode: partial
       counterparty: Initech

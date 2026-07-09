@@ -54,17 +54,6 @@ When(
   },
 );
 
-/** Scenario Outline 用：数据细节与被测点无关时按 preset 建仓 */
-When(
-  'the maker creates a {string} trade using the {string} preset',
-  async ({ tradeFlow, ctx }, productType: string, presetName: string) => {
-    const type = assertProductType(productType);
-    const preset = getTradePreset(presetName);
-    ctx.set('tradeCase', preset);
-    ctx.set('tradeId', await tradeFlow.createTrade(type, preset));
-  },
-);
-
 /** 验证点同样消费用例数据（从 ctx 读，与数据来自 tag 还是 productType 无关） */
 Then('the trade row should match the case data', async ({ tradeFlow, ctx }) => {
   const tradeCase = ctx.require('tradeCase');

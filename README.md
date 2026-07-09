@@ -263,7 +263,7 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 机器生成/消费的数据才用 JSON。建仓的完整示例（`features/create-trade.feature`）：
 
 ```gherkin
-Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
+Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
   When the maker creates a "FX_FBS" trade from the case data
   And the trade row should match the case data     # 验证点同样消费用例数据
 ```
@@ -301,20 +301,29 @@ Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
 
 **场景怎么组织（报告可读性优先）**：
 
-- **一个 case 一个场景**，标题各自描述业务行为（`TRADE-001 - Create a plain FX TRF trade`）——
+- **一个 case 一个场景**，标题各自描述业务行为（`TRADE-004 - Create an FX FBS trade with a full step-in`）——
   报告里读到的是不同的行为，而不是"同一个描述跑了 N 遍"；caseId 不进 Examples
 - **Scenario Outline 只用在差异点本身业务可见**的场合：差异（如 productType）
   写进标题模板，每行生成的测试名天然不同：
 
 ```gherkin
-Scenario Outline: Create a plain <productType> trade using the standard preset
-  When the maker creates a "<productType>" trade using the "standard" preset
+Scenario Outline: <caseId> - Create a plain <productType> trade
+  When the maker creates a "<productType>" trade from the case data
   Examples:
-    | productType |
-    | FX_FBS      |
+    | caseId    | productType |
+    | TRADE-001 | FX_TRF      |
+    | TRADE-002 | FX_CO       |
+    | TRADE-003 | FX_FBS      |
 ```
 
-两条路径（标题 caseId / preset 别名）的创建步骤都把实际使用的用例写入
+Outline 里每一行仍然带独立 caseId，标题因此逐行不同，报告不会把三行读成"同一描述
+重复三次"。caseId 是驱动这张表的唯一必要列——每行对应 case 的 counterparty/portfolio
+该相同就相同、该不同就不同，`tradeCase` fixture 按 caseId 查出完整数据，不要求同一张
+表里的其它字段也保持一致。真正业务上独立的分支（如 step-in 的 full/partial）不适合
+塞进这张表，是因为它们验证的不是 productType 维度，而是各自单独成场景
+（`TRADE-004`/`TRADE-005`）。
+
+创建步骤都把实际使用的用例写入
 `ctx`（`ctx.set('tradeCase', ...)`），验证步骤统一从 `ctx` 读——断言与数据来源解耦。
 
 ### 跨步骤共享状态与数据隔离
