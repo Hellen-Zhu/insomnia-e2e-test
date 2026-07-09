@@ -1,19 +1,26 @@
-import { getDefaultTradeCase } from '../utils/trade-cases';
+import { assertProductType, getDefaultTradeCase } from '../utils/trade-cases';
 import { When, Then } from '../fixtures/trade.fixtures';
 
-/** 用例数据来自场景的 @case:<id> tag（tradeCase fixture），步骤文本不出现 caseId */
-When('the maker creates a trade from the case data', async ({ tradeFlow, tradeCase, ctx }) => {
-  ctx.set('tradeCase', tradeCase);
-  ctx.set('tradeId', await tradeFlow.createTrade(tradeCase));
-});
+/**
+ * productType 在步骤中声明（固定枚举，绑定 .dat 路径）；
+ * 可变参数（counterparty/portfolio/stepIn）经标题 caseId 从 YAML 取（tradeCase fixture）
+ */
+When(
+  'the maker creates a {string} trade from the case data',
+  async ({ tradeFlow, tradeCase, ctx }, productType: string) => {
+    ctx.set('tradeCase', tradeCase);
+    ctx.set('tradeId', await tradeFlow.createTrade(assertProductType(productType), tradeCase));
+  },
+);
 
-/** Scenario Outline 用：Examples 列只出现 productType，按 defaults 映射取默认用例 */
+/** Scenario Outline 用：按 defaults 映射（productType → 默认 caseId）取用例参数 */
 When(
   'the maker creates a {string} trade using default case data',
   async ({ tradeFlow, ctx }, productType: string) => {
-    const tradeCase = getDefaultTradeCase(productType);
+    const type = assertProductType(productType);
+    const tradeCase = getDefaultTradeCase(type);
     ctx.set('tradeCase', tradeCase);
-    ctx.set('tradeId', await tradeFlow.createTrade(tradeCase));
+    ctx.set('tradeId', await tradeFlow.createTrade(type, tradeCase));
   },
 );
 

@@ -15,17 +15,17 @@ Feature: Create trade (data-driven)
     And I am on the trade portal
 
   Scenario: TRADE-001 - Create a plain FX TRF trade
-    When the maker creates a trade from the case data
+    When the maker creates a "FX_TRF" trade from the case data
     Then the new trade should appear with status "New" and event status "pending approval"
     And the trade row should match the case data
 
   Scenario: TRADE-002 - Create a plain FX CO trade
-    When the maker creates a trade from the case data
+    When the maker creates a "FX_CO" trade from the case data
     Then the new trade should appear with status "New" and event status "pending approval"
     And the trade row should match the case data
 
   Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
-    When the maker creates a trade from the case data
+    When the maker creates a "FX_FBS" trade from the case data
     Then the new trade should appear with status "New" and event status "pending approval"
     And the trade row should match the case data
 

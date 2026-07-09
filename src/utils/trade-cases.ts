@@ -2,7 +2,21 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { assertCaseIdPattern, loadYaml, pickCase } from './case-data';
 
-export type ProductType = 'FX_TRF' | 'FX_CO' | 'FX_FBS';
+/**
+ * 产品类型是固定枚举，与 .dat 捕获文件按路径约定一一绑定
+ * （test-data/trades/dat/{productType}.dat）——它不是用例的可变参数，
+ * 因此不进 YAML；场景在步骤中声明产品类型（业务可见）。
+ */
+export const PRODUCT_TYPES = ['FX_TRF', 'FX_CO', 'FX_FBS'] as const;
+export type ProductType = (typeof PRODUCT_TYPES)[number];
+
+/** Gherkin 传入的产品类型是自由文本，此处校验并列出支持的类型 */
+export function assertProductType(value: string): ProductType {
+  if (!(PRODUCT_TYPES as readonly string[]).includes(value)) {
+    throw new Error(`Unknown product type '${value}'. Supported: ${PRODUCT_TYPES.join(', ')}`);
+  }
+  return value as ProductType;
+}
 
 export interface StepInDetails {
   mode: 'full' | 'partial';
@@ -10,8 +24,8 @@ export interface StepInDetails {
   counterparty: string;
 }
 
+/** 用例的可变业务参数（固定的产品类型不在此列） */
 export interface CreateTradeCase {
-  productType: ProductType;
   counterparty: string;
   portfolio: string;
   /** 可选：step-in 建仓（先选 counterparty/portfolio，再开 step-in 选模式与对手方） */
@@ -48,9 +62,9 @@ export function getCreateTradeCase(caseId: string): CreateTradeCase {
 }
 
 /** Outline 按 productType 取该类产品的默认用例（defaults 映射显式维护） */
-export function getDefaultTradeCase(productType: string): CreateTradeCase {
+export function getDefaultTradeCase(productType: ProductType): CreateTradeCase {
   const { defaults } = doc();
-  const caseId = defaults[productType as ProductType];
+  const caseId = defaults[productType];
   if (!caseId) {
     throw new Error(
       `No default case for product type '${productType}'. Configured: ${Object.keys(defaults).join(', ')}`,

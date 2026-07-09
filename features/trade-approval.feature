@@ -9,7 +9,7 @@ Feature: Trade maker-checker approval
   Scenario: TRADE-001 - Maker creates a trade and checker approves it
     Given I am logged in as "maker"
     And I am on the trade portal
-    When the maker creates a trade from the case data
+    When the maker creates a "FX_TRF" trade from the case data
     Then the new trade should appear with status "New" and event status "pending approval"
     When the checker approves the trade
     Then the trade should show event status "Approved"

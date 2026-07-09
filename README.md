@@ -263,8 +263,8 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 机器生成/消费的数据才用 JSON。建仓的完整示例（`features/create-trade.feature`）：
 
 ```gherkin
-Scenario: TC003 - Create an FX FBS trade with partial step-in
-  When the maker creates a trade from the case data
+Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
+  When the maker creates a "FX_FBS" trade from the case data
   And the trade row should match the case data     # 验证点同样消费用例数据
 ```
 
@@ -279,13 +279,15 @@ Scenario: TC003 - Create an FX FBS trade with partial step-in
   本场景副本，不会经 worker 内共享缓存污染后续场景；运行时产物（tradeId）走
   场景级 `ctx`；需要"每次运行唯一"的输入时在步骤里用 `testInfo.workerIndex`/时间戳派生
 - **fail-fast**：caseId 不存在列出全部可用值；`.dat` 缺失立刻报错，不让上传静默失败
-- `.dat` 捕获文件按 productType 解析：`test-data/trades/dat/{FX_TRF|FX_CO|FX_FBS}.dat`；
-  step-in 是 case 的可选字段（full/partial + step-in 对手方），不是独立流程
+- **productType 不进 YAML**：它是固定枚举、直接绑定 `.dat` 路径
+  （`test-data/trades/dat/{FX_TRF|FX_CO|FX_FBS}.dat`，代码级映射见 `trade-cases.ts`），
+  由场景步骤声明（`creates a "FX_TRF" trade ...`）；YAML 只放会变的业务参数
+  （counterparty/portfolio/stepIn），step-in 是可选字段而非独立流程
 - 新增用例 = YAML 加一段 + 标题带 caseId 的新场景，代码零改动
 
 **场景怎么组织（报告可读性优先）**：
 
-- **一个 case 一个场景**，标题各自描述业务行为（`TC001 - Create a plain FX TRF trade`）——
+- **一个 case 一个场景**，标题各自描述业务行为（`TRADE-001 - Create a plain FX TRF trade`）——
   报告里读到的是不同的行为，而不是"同一个描述跑了 N 遍"；caseId 不进 Examples
 - **Scenario Outline 只用在差异点本身业务可见**的场合：差异（如 productType）
   写进标题模板，每行生成的测试名天然不同：
