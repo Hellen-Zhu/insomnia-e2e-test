@@ -18,7 +18,7 @@ export class TransactionFilterSection extends BaseComponent {
     await this.host.getByTestId(`transaction-filter-${tab}-btn`).click();
   }
 
-  /* 三个下拉按原生 <select> 实现；若实为自定义组件，改用 components/Dropdown */
+  /* 三个下拉按原生 <select> 实现；若实为自定义组件，改用 components/Combobox */
   async filterByType(value: string): Promise<void> {
     await this.typeSelect.selectOption(value);
   }

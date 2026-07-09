@@ -108,7 +108,7 @@ export class ProfilePage extends BasePage {
 
   private readonly nickname = new TextInput(this.page.getByTestId('nickname'));
   private readonly bio = new TextArea(this.page.getByTestId('bio'));
-  private readonly city = new Dropdown(this.page.getByTestId('city'));
+  private readonly city = new Combobox(this.page.getByTestId('city'));
 
   async updateBio(text: string): Promise<void> {
     await this.bio.fill(text);
@@ -116,7 +116,7 @@ export class ProfilePage extends BasePage {
 }
 ```
 
-已提供的组件：`TextInput`、`TextArea`（fill/clear/expectValue/expectEnabled/expectDisabled）、`Dropdown`（select/expectSelected，展示带浮层交互的封装方式）。
+已提供的组件：`TextInput`、`TextArea`（fill/clear/expectValue/expectEnabled/expectDisabled）、`Combobox`（select/expectSelected：点击触发器开面板 → 点选值，适配无 ARIA 的自定义下拉）。
 
 约定：
 

@@ -29,7 +29,7 @@ export class CancelTradeDialog extends BaseComponent {
   private readonly effectiveDate = new TextInput(
     this.host.getByTestId('trade-detail-effective-date-input'),
   );
-  /* reason 按原生 <select> 处理（testid 以 -select 结尾）；若实为自定义组件改用 Dropdown */
+  /* reason 按原生 <select> 处理（testid 以 -select 结尾）；若实为自定义组件改用 Combobox */
   private readonly reasonSelect = this.host.getByTestId('trade-detail-cancel-reason-select');
   private readonly comments = new TextArea(
     this.host.getByTestId('trade-detail-cancel-comments-textarea'),

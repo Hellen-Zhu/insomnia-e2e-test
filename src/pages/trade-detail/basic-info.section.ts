@@ -1,6 +1,6 @@
 import { BaseComponent } from '../../components/base.component';
 import { TextInput } from '../../components/form-field';
-import { Dropdown } from '../../components/dropdown';
+import { Combobox } from '../../components/combobox';
 
 /**
  * 基本信息卡片（trade-detail-basic-info-card）。
@@ -8,10 +8,10 @@ import { Dropdown } from '../../components/dropdown';
  */
 export class BasicInfoSection extends BaseComponent {
   private readonly dealDate = new TextInput(this.host.getByTestId('trade-detail-deal-date-input'));
-  private readonly counterparty = new Dropdown(
+  private readonly counterparty = new Combobox(
     this.host.getByTestId('trade-detail-counterparty-combobox'),
   );
-  private readonly portfolio = new Dropdown(
+  private readonly portfolio = new Combobox(
     this.host.getByTestId('trade-detail-portfolio-combobox'),
   );
 

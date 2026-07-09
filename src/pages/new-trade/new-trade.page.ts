@@ -1,6 +1,6 @@
 import { BasePage } from '../base.page';
 import { BaseComponent } from '../../components/base.component';
-import { Dropdown } from '../../components/dropdown';
+import { Combobox } from '../../components/combobox';
 
 export type StepInMode = 'full' | 'partial';
 
@@ -10,7 +10,7 @@ export type StepInMode = 'full' | 'partial';
  * 仅本页面使用，不提升到 components/。
  */
 class StepInSection extends BaseComponent {
-  private readonly oldCounterparty = new Dropdown(
+  private readonly oldCounterparty = new Combobox(
     this.host.getByTestId('create-trade-old-counterparty-combobox'),
   );
 
@@ -32,10 +32,10 @@ export class NewTradePage extends BasePage {
   readonly path = '/new-trade'; // 按真实路由调整
 
   private readonly fileUpload = this.page.getByTestId('trade-file-upload');
-  private readonly counterparty = new Dropdown(
+  private readonly counterparty = new Combobox(
     this.page.getByTestId('create-trade-counterparty-combobox'),
   );
-  private readonly portfolio = new Dropdown(
+  private readonly portfolio = new Combobox(
     this.page.getByTestId('create-trade-portfolio-combobox'),
   );
 

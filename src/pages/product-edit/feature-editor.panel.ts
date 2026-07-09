@@ -15,7 +15,7 @@ export type FeatureEditorGroup = 'economics' | 'options' | 'parties' | 'schedule
  */
 export class FeatureEditorPanel extends BaseComponent {
   private readonly title = this.host.getByTestId('feature-editor-dialog-title');
-  /* 三个下拉按原生 <select> 处理；若为自定义组件改用 components/Dropdown */
+  /* 三个下拉按原生 <select> 处理；若为自定义组件改用 components/Combobox */
   private readonly triggerType = this.host.getByTestId('feature-editor-trigger-type-select');
   private readonly formulaType = this.host.getByTestId('feature-editor-formula-type-select');
   private readonly cortexFormula = this.host.getByTestId('feature-editor-cortex-formula-select');
