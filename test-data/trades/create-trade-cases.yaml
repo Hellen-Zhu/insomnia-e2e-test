@@ -1,0 +1,37 @@
+# 建仓用例参数库（trade 模块）。
+# - cases: caseId → 参数；场景标题（"TRADE-001 - ..." 或 "[TRADE-001] ..."）引用
+# - caseId 编号：TRADE-<三位流水号>。模块前缀即命名空间（product 模块用 PRODUCT-xxx），
+#   跨模块不会撞号；号码只增不改不复用，接入 ADO 后机械替换为 work item ID
+# - defaults: Scenario Outline 按 productType 驱动时，每类产品的默认 caseId
+# productType 决定上传的 .dat 捕获文件（test-data/trades/dat/{productType}.dat）。
+# stepIn 可选：mode = full | partial，counterparty 为 step-in 对手方
+#（映射 create-trade-old-counterparty-combobox）。
+
+defaults:
+  FX_TRF: TRADE-001
+  FX_CO: TRADE-002
+  FX_FBS: TRADE-004
+
+cases:
+  TRADE-001:
+    productType: FX_TRF
+    counterparty: ACME Bank
+    portfolio: FX Derivatives
+
+  TRADE-002:
+    productType: FX_CO
+    counterparty: Globex
+    portfolio: FX Options
+
+  TRADE-003:
+    productType: FX_FBS
+    counterparty: ACME Bank
+    portfolio: FX Derivatives
+    stepIn:
+      mode: partial
+      counterparty: Initech
+
+  TRADE-004:
+    productType: FX_FBS
+    counterparty: Globex
+    portfolio: FX Derivatives

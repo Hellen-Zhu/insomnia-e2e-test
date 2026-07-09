@@ -3,12 +3,16 @@ import { tradePortalTest } from './trade-portal.fixtures';
 import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
 import { NewTradePage } from '../pages/new-trade/new-trade.page';
 import { TradeFlow } from '../flows/trade.flow';
+import { caseIdFromTitle } from '../utils/case-data';
+import { getCreateTradeCase, type CreateTradeCase } from '../utils/trade-cases';
 
 /** 交易域产生的跨步骤数据键（declaration merging 注入基座的 ScenarioData） */
 declare module './base.fixtures' {
   interface ScenarioData {
     /** maker 创建交易后从接口响应捕获的 tradeId */
     tradeId: string;
+    /** 本场景实际使用的建仓用例（tag 或 productType 解析），供验证步骤读取 */
+    tradeCase: CreateTradeCase;
   }
 }
 
@@ -20,6 +24,8 @@ type TradeFixtures = {
   tradeDetailPage: TradeDetailPage;
   newTradePage: NewTradePage;
   tradeFlow: TradeFlow;
+  /** 本场景的建仓用例数据：从场景标题（`<caseId> - 描述`）解析，创建与验证步骤共用 */
+  tradeCase: CreateTradeCase;
 };
 
 export const test = tradePortalTest.extend<TradeFixtures>({
@@ -27,6 +33,9 @@ export const test = tradePortalTest.extend<TradeFixtures>({
   newTradePage: async ({ page }, use) => use(new NewTradePage(page)),
   tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
     use(new TradeFlow(tradePortalPage, newTradePage)),
+  /* 懒加载：只有解构了 tradeCase 的步骤所在场景才要求标题带 caseId */
+  tradeCase: async ({}, use, testInfo) =>
+    use(getCreateTradeCase(caseIdFromTitle(testInfo.title))),
 });
 
 export const { Given, When, Then } = createBdd(test);

@@ -250,11 +250,56 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 | 层次 | 方式 | 适用 | 示例 |
 |---|---|---|---|
 | 1 | `Scenario Outline` + `Examples` | 数据量小且差异即业务规则 | `login.feature` 的无效凭证表 |
-| 2 | 步骤 DataTable | 单场景的结构化输入 | `trade-approval.feature` 的新建交易表单 |
-| 3 | `test-data/*` + 业务别名/路径 | 数据量大或细节与业务无关 | `test-data/trades/trf-sample.json` 交易捕获文件 |
+| 2 | 步骤 DataTable | 单场景的结构化输入 | 行内键值参数表 |
+| 3 | `test-data/*` + 业务别名 | 数据量大或细节与业务无关 | `creates a trade using case "TC001"` |
 
-层次 3 的约定：Gherkin 里只出现**业务别名或文件路径**，真实数据在 `test-data/` 下维护；
-需要别名映射时提供类型化访问函数（别名不存在时报错并列出可用值）。
+层次 3 的约定：**caseId 放在场景标题里，不进步骤文本**——支持两种格式：
+`[<caseId>] <业务描述>`（ADO 风格，与 playwright-azure-reporter 的匹配格式一致，
+便于将来回写 Test Plans）或 `<caseId> - <业务描述>`。caseId 的形态由编号源头决定：
+有 TMS（ADO）时照抄 work item ID；自管编号用 `<MODULE>-<流水号>`（TRADE-001），
+**模块前缀即命名空间**——每个模块只在自己的 YAML 里编号，跨模块结构上不会撞号，
+加载器按模块模式校验（`assertCaseIdPattern`），文件内重复由 YAML 解析器直接拒绝。
+数据文件用 **YAML**（支持注释记录 case 缘由/ticket、锚点复用公共字段、QA 手写友好）；
+机器生成/消费的数据才用 JSON。建仓的完整示例（`features/create-trade.feature`）：
+
+```gherkin
+Scenario: TC003 - Create an FX FBS trade with partial step-in
+  When the maker creates a trade from the case data
+  And the trade row should match the case data     # 验证点同样消费用例数据
+```
+
+机制与约定：
+
+- **fixture 解析标题**：`tradeCase` fixture 用 `caseIdFromTitle(testInfo.title)`
+  截取 caseId（正则约定 `<caseId> - `，格式不符时报可诊断错误）并加载数据，
+  创建步骤和验证步骤都可解构它——验证点需要的期望值与输入同源
+- **分模块**：每个业务模块一个数据文件（`test-data/trades/create-trade-cases.yaml`、
+  将来 `test-data/products/…`）+ 自己的类型化访问函数；通用加载在 `src/utils/case-data.ts`
+- **并行安全**：YAML 是只读输入，`getCase` 返回**深拷贝**——步骤改了数据只影响
+  本场景副本，不会经 worker 内共享缓存污染后续场景；运行时产物（tradeId）走
+  场景级 `ctx`；需要"每次运行唯一"的输入时在步骤里用 `testInfo.workerIndex`/时间戳派生
+- **fail-fast**：caseId 不存在列出全部可用值；`.dat` 缺失立刻报错，不让上传静默失败
+- `.dat` 捕获文件按 productType 解析：`test-data/trades/dat/{FX_TRF|FX_CO|FX_FBS}.dat`；
+  step-in 是 case 的可选字段（full/partial + step-in 对手方），不是独立流程
+- 新增用例 = YAML 加一段 + 标题带 caseId 的新场景，代码零改动
+
+**场景怎么组织（报告可读性优先）**：
+
+- **一个 case 一个场景**，标题各自描述业务行为（`TC001 - Create a plain FX TRF trade`）——
+  报告里读到的是不同的行为，而不是"同一个描述跑了 N 遍"；caseId 不进 Examples
+- **Scenario Outline 只用在差异点本身业务可见**的场合：差异（如 productType）
+  写进标题模板，每行生成的测试名天然不同：
+
+```gherkin
+Scenario Outline: Create a plain <productType> trade using defaults
+  When the maker creates a "<productType>" trade using default case data
+  Examples:
+    | productType |
+    | FX_FBS      |
+```
+
+两条路径（标题 caseId / productType defaults）的创建步骤都把实际使用的用例写入
+`ctx`（`ctx.set('tradeCase', ...)`），验证步骤统一从 `ctx` 读——断言与数据来源解耦。
 
 ### 跨步骤共享状态与数据隔离
 

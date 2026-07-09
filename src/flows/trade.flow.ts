@@ -1,13 +1,7 @@
 import type { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
 import type { BlotterRow } from '../pages/trade-portal/blotter-view.component';
 import type { NewTradePage } from '../pages/new-trade/new-trade.page';
-
-export interface NewTradeRequest {
-  counterparty: string;
-  portfolio: string;
-  /** 交易捕获文件路径（相对项目根） */
-  tradeFile: string;
-}
+import { datFileFor, type CreateTradeCase } from '../utils/trade-cases';
 
 /**
  * 交易生命周期流程：跨 TradePortalPage / NewTradePage 的业务编排。
@@ -20,12 +14,19 @@ export class TradeFlow {
     private readonly newTrade: NewTradePage,
   ) {}
 
-  /** maker：从 portal 发起新建 → 填表 → 传文件 → 保存并返回后端生成的 tradeId */
-  async createTrade(request: NewTradeRequest): Promise<string> {
+  /**
+   * maker：从 portal 发起新建 → 选对手方/组合 →（可选 step-in）→
+   * 按 productType 上传 .dat 捕获文件 → 保存并返回后端生成的 tradeId。
+   * 参数来自 test-data/trades/create-trade-cases.yaml（按 caseId 取）。
+   */
+  async createTrade(tradeCase: CreateTradeCase): Promise<string> {
     await this.portal.startNewTrade();
-    await this.newTrade.selectCounterparty(request.counterparty);
-    await this.newTrade.selectPortfolio(request.portfolio);
-    await this.newTrade.uploadTradeFile(request.tradeFile);
+    await this.newTrade.selectCounterparty(tradeCase.counterparty);
+    await this.newTrade.selectPortfolio(tradeCase.portfolio);
+    if (tradeCase.stepIn) {
+      await this.newTrade.enableStepIn(tradeCase.stepIn.mode, tradeCase.stepIn.counterparty);
+    }
+    await this.newTrade.uploadTradeFile(datFileFor(tradeCase.productType));
     return this.newTrade.saveAndGetTradeId();
   }
 

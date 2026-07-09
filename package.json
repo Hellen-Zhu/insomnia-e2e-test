@@ -14,7 +14,13 @@
     "lint": "eslint .",
     "format": "prettier --write ."
   },
-  "keywords": ["e2e", "playwright", "cucumber", "bdd", "pom"],
+  "keywords": [
+    "e2e",
+    "playwright",
+    "cucumber",
+    "bdd",
+    "pom"
+  ],
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
@@ -28,5 +34,8 @@
     "prettier": "^3.9.4",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.63.0"
+  },
+  "dependencies": {
+    "yaml": "^2.9.0"
   }
 }

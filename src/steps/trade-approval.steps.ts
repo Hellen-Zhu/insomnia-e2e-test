@@ -1,10 +1,27 @@
-import type { DataTable } from 'playwright-bdd';
-import type { NewTradeRequest } from '../flows/trade.flow';
+import { getDefaultTradeCase } from '../utils/trade-cases';
 import { When, Then } from '../fixtures/trade.fixtures';
 
-When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
-  const request = table.rowsHash() as unknown as NewTradeRequest;
-  ctx.set('tradeId', await tradeFlow.createTrade(request));
+/** 用例数据来自场景的 @case:<id> tag（tradeCase fixture），步骤文本不出现 caseId */
+When('the maker creates a trade from the case data', async ({ tradeFlow, tradeCase, ctx }) => {
+  ctx.set('tradeCase', tradeCase);
+  ctx.set('tradeId', await tradeFlow.createTrade(tradeCase));
+});
+
+/** Scenario Outline 用：Examples 列只出现 productType，按 defaults 映射取默认用例 */
+When(
+  'the maker creates a {string} trade using default case data',
+  async ({ tradeFlow, ctx }, productType: string) => {
+    const tradeCase = getDefaultTradeCase(productType);
+    ctx.set('tradeCase', tradeCase);
+    ctx.set('tradeId', await tradeFlow.createTrade(tradeCase));
+  },
+);
+
+/** 验证点同样消费用例数据（从 ctx 读，与数据来自 tag 还是 productType 无关） */
+Then('the trade row should match the case data', async ({ tradeFlow, ctx }) => {
+  const tradeCase = ctx.require('tradeCase');
+  const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
+  await row.expectContains(tradeCase.counterparty);
 });
 
 Then(
