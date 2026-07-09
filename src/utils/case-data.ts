@@ -5,8 +5,10 @@ import { parse } from 'yaml';
 /**
  * 通用的用例数据 YAML 加载器。
  *
- * 分模块约定：每个业务模块一个数据文件（test-data/<module>/<name>-cases.yaml），
- * 各模块提供自己的类型化访问函数（见 trade-cases.ts），不把所有数据堆在一起。
+ * 组织约定（三级，防止数据堆在一起）：
+ *   test-data/<module>/ 模块目录 → 每种数据一个文件或目录（loadCaseDoc，
+ *   形状不同即分家；量大时文件升级为分片目录）→ 文件内 presets/cases 两命名空间。
+ * 各模块提供自己的类型化访问函数（见 trade-cases.ts），跨模块只经访问函数取数。
  *
  * 并行安全：
  *   - YAML 是只读输入，按文件缓存（每个 worker 进程各有一份缓存，互不可见）
@@ -28,6 +30,66 @@ export function loadYaml<T>(relativeFile: string): T {
     cache.set(relativeFile, doc);
   }
   return doc as T;
+}
+
+/**
+ * 一"种"用例数据的通用文档形状：两个命名空间。
+ * presets——业务别名 → 参数模板（前置造数、与被测行为无关的数据）；
+ * cases——caseId → 参数（该数据种类本身是被测行为时，经场景标题绑定）。
+ * 两者都可省略（纯 preset 文件不需要 cases，反之亦然）。
+ */
+export interface CaseDoc<T> {
+  presets?: Record<string, T>;
+  cases?: Record<string, T>;
+}
+
+const docCache = new Map<string, unknown>();
+
+/**
+ * 加载一种用例数据。relativePath 可以是单个 YAML 文件，也可以是目录：
+ * 数据量大时把文件原地升级为同名目录，内部任意拆成多个同构分片
+ * （按功能面/产品线分文件），加载时合并 presets/cases 两个命名空间——
+ * 访问函数只改这里的一个路径常量，调用方零改动。
+ *
+ * 跨文件重名（YAML 解析器只能挡住单文件内的 duplicate key）在合并时
+ * 检测并指明两个来源文件。注意：锚点（&x / *x）不跨文件——继承链
+ * 必须写在同一个分片里，这也是 presets 通常独占一个分片的原因。
+ */
+export function loadCaseDoc<T>(relativePath: string): Required<CaseDoc<T>> {
+  let doc = docCache.get(relativePath) as Required<CaseDoc<T>> | undefined;
+  if (doc !== undefined) return doc;
+
+  const absolute = path.resolve(__dirname, '../../', relativePath);
+  const files = fs.statSync(absolute).isDirectory()
+    ? fs
+        .readdirSync(absolute)
+        .filter((name) => /\.ya?ml$/.test(name))
+        .sort()
+        .map((name) => path.join(relativePath, name))
+    : [relativePath];
+  if (files.length === 0) {
+    throw new Error(`No YAML files found in ${relativePath}`);
+  }
+
+  doc = { presets: {}, cases: {} };
+  const origin = new Map<string, string>();
+  for (const file of files) {
+    const part = loadYaml<CaseDoc<T>>(file);
+    for (const namespace of ['presets', 'cases'] as const) {
+      for (const [key, value] of Object.entries(part[namespace] ?? {})) {
+        const existing = origin.get(`${namespace}:${key}`);
+        if (existing !== undefined) {
+          throw new Error(
+            `Duplicate ${namespace} key '${key}' in ${file} — already defined in ${existing}`,
+          );
+        }
+        origin.set(`${namespace}:${key}`, file);
+        doc[namespace][key] = value;
+      }
+    }
+  }
+  docCache.set(relativePath, doc);
+  return doc;
 }
 
 /**

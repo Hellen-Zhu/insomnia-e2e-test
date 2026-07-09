@@ -1,4 +1,4 @@
-import { credentialsFor } from '../config/users';
+import { credentialsFor } from '../../config/users';
 import type { LoginPage } from '../pages/login.page';
 import type { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
 

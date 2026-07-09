@@ -32,9 +32,10 @@ ENV=staging npm test    # 切换环境
 ```
 ├── features/           # 特性层：Gherkin 场景（业务语言）
 ├── src/
-│   ├── flows/          # 流程层：跨页面业务流程编排（登录、下单）
-│   ├── pages/          # 页面层：POM，封装定位器与页面行为
-│   ├── components/     # 组件层：设计系统组件对象（宿主→内部元素的映射）
+│   ├── pom/            # UI 模型层：唯一允许出现 Locator 的地方
+│   │   ├── flows/      #   流程层：跨页面业务流程编排（登录、下单）
+│   │   ├── pages/      #   页面层：POM，封装定位器与页面行为
+│   │   └── components/ #   组件层：设计系统组件对象（宿主→内部元素的映射）
 │   ├── steps/          # 步骤层：Gherkin ↔ flow/page 的薄胶水
 │   ├── fixtures/       # DI 中心：base（横切）+ 各业务域一个文件
 │   └── config/         # 配置层：环境相关配置（随 ENV 变化）
@@ -50,9 +51,9 @@ ENV=staging npm test    # 切换环境
 |---|---|---|---|
 | `features/` | 纯业务语言描述场景 | — | 选择器、URL 等技术细节 |
 | `src/steps/` | 一行 Gherkin ↔ 一次调用 | flow、page | component、Playwright 原语、业务逻辑 |
-| `src/flows/` | 跨页面业务流程编排 + 到达断言 | page | 持有定位器、感知 Gherkin |
-| `src/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page、感知 Gherkin |
-| `src/components/` | 设计系统组件（宿主→内部） | 原语 | page、flow |
+| `src/pom/flows/` | 跨页面业务流程编排 + 到达断言 | page | 持有定位器、感知 Gherkin |
+| `src/pom/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page、感知 Gherkin |
+| `src/pom/components/` | 设计系统组件（宿主→内部） | 原语 | page、flow |
 
 **step 调 flow 还是 page？** 这行 Gherkin 跨页面（`the maker creates a new trade`）→ flow；单页动作（`the maker is on the trade portal`）→ page。
 
@@ -60,7 +61,7 @@ ENV=staging npm test    # 切换环境
 
 ### 新增一个页面对象
 
-1. 在 `src/pages/` 创建类，继承 `BasePage`：
+1. 在 `src/pom/pages/` 创建类，继承 `BasePage`：
 
 ```ts
 export class ProfilePage extends BasePage {
@@ -99,7 +100,7 @@ When('我保存个人资料', async ({ profilePage }) => {
 
 ### 组件对象层（设计系统项目必读）
 
-当 `data-testid` 打在组件**宿主**上、真实控件（input/textarea）在内部时，"宿主 → 内部元素"的映射属于组件库知识，必须收口到 `src/components/`，禁止散落在页面对象里：
+当 `data-testid` 打在组件**宿主**上、真实控件（input/textarea）在内部时，"宿主 → 内部元素"的映射属于组件库知识，必须收口到 `src/pom/components/`，禁止散落在页面对象里：
 
 ```ts
 // 页面对象中声明式使用，组件库内部结构变化时只改组件类一处
@@ -200,20 +201,18 @@ maker 创建 → checker 审批是**先后**发生的，因此不需要两个同
 完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
 
 ```gherkin
-Given a "FX_TRF" trade has been created      # 前置：preset 造数（内部以 maker 登录）
-When the checker approves the trade          # 被测行为
+Given a "FX_TRF" trade has been created via api   # 前置：走 API 造数，不占浏览器
+When the checker approves the trade               # 被测行为：从这里才开始用 UI
 Then the trade should show event status "Approved"
 ```
 
 ```ts
-Given('a {string} trade has been created', async ({ context, loginFlow, tradeFlow, ctx }, pt) => {
-  await context.clearCookies();
-  await loginFlow.loginAs('maker');            // 前置步骤自足：自己完成 maker 登录
-  ctx.set('tradeId', await tradeFlow.createTrade(assertProductType(pt), getTradePreset('standard')));
-});
+Given('a {string} trade has been created via api', (fixtures, productType: string) =>
+  seedTradeWithPreset(fixtures, productType, 'standard'),  // preset：与 caseId 无关的业务别名模板
+);
 
 When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
-  await context.clearCookies();                // 清掉 maker 会话
+  await context.clearCookies();                // 清掉 maker 会话（前置走 API，从未登录过）
   await loginFlow.loginAs('checker');          // 以 checker 重新 UI 登录，落地即就绪
   await tradeFlow.approveTrade(ctx.require('tradeId'));  // ctx 跨角色天然共享
 });
@@ -274,9 +273,14 @@ Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
 - **fixture 解析标题**：`tradeCase` fixture 用 `caseIdFromTitle(testInfo.title)`
   截取 caseId（正则约定 `<caseId> - `，格式不符时报可诊断错误）并加载数据，
   创建步骤和验证步骤都可解构它——验证点需要的期望值与输入同源
-- **分模块 + 分数据种类**：模块一个目录（`test-data/trades/`、`test-data/products/…`），
+- **分模块 + 分数据种类 + 分片**：模块一个目录（`test-data/trades/`、`test-data/products/…`），
   目录内**每种前置/动作一个数据文件**——形状不同的数据不共用命名空间
-  （`create-trade-cases.yaml`、`cancellation-details.yaml`…）。类型区分在访问器层：
+  （`create-trade-cases.yaml`、`cancellation-details.yaml`…），文件内 presets 与
+  cases 放在一起（同一种数据的两个视角）。单文件起步；用例攒多后把文件原地升级为
+  同名目录、**按功能面**拆成任意多个同构分片（`core.yaml`、`stepin.yaml`…，每片
+  仍是 presets+cases 同文件），`loadCaseDoc` 自动合并两命名空间并检测跨文件重复
+  caseId（指明两个来源文件）；访问函数签名不变，steps/fixtures 零改动。
+  锚点继承不跨文件——继承链写在同一分片内。类型区分在访问器层：
   `getTradePreset() → CreateTradeCase`、`getCancellationPreset() → CancellationPreset`，
   拿错数据种类是编译错误；通用加载在 `src/utils/case-data.ts`
 - **并行安全**：YAML 是只读输入，`getCase` 返回**深拷贝**——步骤改了数据只影响
@@ -288,10 +292,11 @@ Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
   由场景步骤声明（`creates a "FX_TRF" trade ...`）；YAML 只放会变的业务参数
   （counterparty/portfolio/stepIn），step-in 是可选字段而非独立流程
 - **presets 与 cases 分开**：建仓只是**前置条件**（被测的是审批/取消等后续行为）时，
-  数据不绑 caseId——用 `presets` 里的业务别名模板：
-  `Given a "FX_TRF" trade has been created`（standard 模板）或
-  `... with the "stepin-partial" preset`。该 Given 自足（内部完成 maker 登录 + 建仓），
-  将来有造数 API 时内部换成 API seeding，feature 文本不动
+  数据不绑 caseId——用 `presets` 里的业务别名模板，Given 走 API 造数（不占浏览器）：
+  `Given a "FX_TRF" trade has been created via api`（standard 模板）、
+  `... with a full step-in via api`、`... with a partial step-in via api`。
+  presets 是小而稳定的枚举集合，不像 cases 会随覆盖率增长，所以一个 Given 对应一种
+  自然语言短语，不把 preset 的 YAML key 当参数塞进引号暴露给 Gherkin 文本
 - 新增用例 = YAML 加一段 + 标题带 caseId 的新场景，代码零改动
 
 **场景怎么组织（报告可读性优先）**：

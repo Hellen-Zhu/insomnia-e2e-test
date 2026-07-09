@@ -1,7 +1,7 @@
 import type { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
 import type { BlotterRow } from '../pages/trade-portal/blotter-view.component';
 import type { NewTradePage } from '../pages/new-trade/new-trade.page';
-import { datFileFor, type CreateTradeCase, type ProductType } from '../utils/trade-cases';
+import { datFileFor, type CreateTradeCase, type ProductType } from '../../utils/trade-cases';
 
 /**
  * 交易生命周期流程：跨 TradePortalPage / NewTradePage 的业务编排。

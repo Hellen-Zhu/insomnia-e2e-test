@@ -8,6 +8,6 @@ Feature: Trade maker-checker approval
   the scenario context.
 
   Scenario: TRADE-101 - Checker approves a pending trade
-    Given a "FX_TRF" trade has been created
+    Given a "FX_TRF" trade has been created via api
     When the checker approves the trade
     Then the trade should show event status "Approved"

@@ -1,7 +1,7 @@
 import { createBdd } from 'playwright-bdd';
 import { tradePortalTest } from './trade-portal.fixtures';
-import { ProductEditPage } from '../pages/product-edit/product-edit.page';
-import { ProductComposerPage } from '../pages/product-composer/product-composer.page';
+import { ProductEditPage } from '../pom/pages/product-edit/product-edit.page';
+import { ProductComposerPage } from '../pom/pages/product-composer/product-composer.page';
 
 /**
  * 产品域 fixtures：编排页（产品列表 + 审计日志）与编辑页
