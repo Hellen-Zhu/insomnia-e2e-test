@@ -29,8 +29,8 @@ Feature: Create trade (data-driven)
     Then the new trade should appear with status "New" and event status "pending approval"
     And the trade row should match the case data
 
-  Scenario Outline: Create a plain <productType> trade using defaults
-    When the maker creates a "<productType>" trade using default case data
+  Scenario Outline: Create a plain <productType> trade using the standard preset
+    When the maker creates a "<productType>" trade using the "standard" preset
     Then the new trade should appear with status "New" and event status "pending approval"
     And the trade row should match the case data
 

@@ -1,0 +1,14 @@
+# 取消交易的动作数据（trade 模块）。
+# 每种前置/动作一种数据文件：形状不同的数据不共用命名空间，
+# 访问器按类型区分（getCancellationPreset → CancellationPreset）。
+
+presets:
+  standard:
+    effectiveDate: "2026-07-15"
+    reason: BOOKING_ERROR
+    comments: E2E automated cancellation
+
+  backdated:
+    effectiveDate: "2026-07-01"
+    reason: TRADE_AMENDMENT
+    comments: Backdated cancellation for amendment flow

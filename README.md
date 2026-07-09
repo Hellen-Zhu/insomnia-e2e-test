@@ -200,15 +200,16 @@ maker 创建 → checker 审批是**先后**发生的，因此不需要两个同
 完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
 
 ```gherkin
-Given I am logged in as "maker"
-And I am on the trade portal
-When the maker creates a new trade: ...
-When the checker approves the trade
+Given a "FX_TRF" trade has been created      # 前置：preset 造数（内部以 maker 登录）
+When the checker approves the trade          # 被测行为
+Then the trade should show event status "Approved"
 ```
 
 ```ts
-When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
-  ctx.set('tradeId', await tradeFlow.createTrade(table.rowsHash() as NewTradeRequest));
+Given('a {string} trade has been created', async ({ context, loginFlow, tradeFlow, ctx }, pt) => {
+  await context.clearCookies();
+  await loginFlow.loginAs('maker');            // 前置步骤自足：自己完成 maker 登录
+  ctx.set('tradeId', await tradeFlow.createTrade(assertProductType(pt), getTradePreset('standard')));
 });
 
 When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
@@ -273,8 +274,11 @@ Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
 - **fixture 解析标题**：`tradeCase` fixture 用 `caseIdFromTitle(testInfo.title)`
   截取 caseId（正则约定 `<caseId> - `，格式不符时报可诊断错误）并加载数据，
   创建步骤和验证步骤都可解构它——验证点需要的期望值与输入同源
-- **分模块**：每个业务模块一个数据文件（`test-data/trades/create-trade-cases.yaml`、
-  将来 `test-data/products/…`）+ 自己的类型化访问函数；通用加载在 `src/utils/case-data.ts`
+- **分模块 + 分数据种类**：模块一个目录（`test-data/trades/`、`test-data/products/…`），
+  目录内**每种前置/动作一个数据文件**——形状不同的数据不共用命名空间
+  （`create-trade-cases.yaml`、`cancellation-details.yaml`…）。类型区分在访问器层：
+  `getTradePreset() → CreateTradeCase`、`getCancellationPreset() → CancellationPreset`，
+  拿错数据种类是编译错误；通用加载在 `src/utils/case-data.ts`
 - **并行安全**：YAML 是只读输入，`getCase` 返回**深拷贝**——步骤改了数据只影响
   本场景副本，不会经 worker 内共享缓存污染后续场景；运行时产物（tradeId）走
   场景级 `ctx`；需要"每次运行唯一"的输入时在步骤里用 `testInfo.workerIndex`/时间戳派生
@@ -283,6 +287,11 @@ Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
   （`test-data/trades/dat/{FX_TRF|FX_CO|FX_FBS}.dat`，代码级映射见 `trade-cases.ts`），
   由场景步骤声明（`creates a "FX_TRF" trade ...`）；YAML 只放会变的业务参数
   （counterparty/portfolio/stepIn），step-in 是可选字段而非独立流程
+- **presets 与 cases 分开**：建仓只是**前置条件**（被测的是审批/取消等后续行为）时，
+  数据不绑 caseId——用 `presets` 里的业务别名模板：
+  `Given a "FX_TRF" trade has been created`（standard 模板）或
+  `... with the "stepin-partial" preset`。该 Given 自足（内部完成 maker 登录 + 建仓），
+  将来有造数 API 时内部换成 API seeding，feature 文本不动
 - 新增用例 = YAML 加一段 + 标题带 caseId 的新场景，代码零改动
 
 **场景怎么组织（报告可读性优先）**：
@@ -293,14 +302,14 @@ Scenario: [TRADE-003] Create an FX FBS trade with partial step-in
   写进标题模板，每行生成的测试名天然不同：
 
 ```gherkin
-Scenario Outline: Create a plain <productType> trade using defaults
-  When the maker creates a "<productType>" trade using default case data
+Scenario Outline: Create a plain <productType> trade using the standard preset
+  When the maker creates a "<productType>" trade using the "standard" preset
   Examples:
     | productType |
     | FX_FBS      |
 ```
 
-两条路径（标题 caseId / productType defaults）的创建步骤都把实际使用的用例写入
+两条路径（标题 caseId / preset 别名）的创建步骤都把实际使用的用例写入
 `ctx`（`ctx.set('tradeCase', ...)`），验证步骤统一从 `ctx` 读——断言与数据来源解耦。
 
 ### 跨步骤共享状态与数据隔离

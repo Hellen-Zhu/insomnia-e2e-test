@@ -16,12 +16,15 @@ import { parse } from 'yaml';
  */
 const cache = new Map<string, unknown>();
 
-/** 读取并缓存整个 YAML 文档（模块自行定义文档结构，如 defaults + cases） */
+/**
+ * 读取并缓存整个 YAML 文档（模块自行定义文档结构，如 presets + cases）。
+ * merge: true 启用合并键（<<: *anchor）——变体 preset 继承基线、只声明差异。
+ */
 export function loadYaml<T>(relativeFile: string): T {
   let doc = cache.get(relativeFile);
   if (doc === undefined) {
     const absolute = path.resolve(__dirname, '../../', relativeFile);
-    doc = parse(fs.readFileSync(absolute, 'utf8'));
+    doc = parse(fs.readFileSync(absolute, 'utf8'), { merge: true });
     cache.set(relativeFile, doc);
   }
   return doc as T;

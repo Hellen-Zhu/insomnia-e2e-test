@@ -33,8 +33,8 @@ export interface CreateTradeCase {
 }
 
 interface TradeCasesDoc {
-  /** Scenario Outline 按 productType 驱动时，每类产品使用的默认 caseId */
-  defaults: Record<ProductType, string>;
+  /** 与 caseId 无关的具名参数模板：前置造数、数据细节与被测行为无关的建仓 */
+  presets: Record<string, CreateTradeCase>;
   cases: Record<string, CreateTradeCase>;
 }
 
@@ -61,16 +61,27 @@ export function getCreateTradeCase(caseId: string): CreateTradeCase {
   return pickCase(doc().cases, caseId, TRADE_CASES_FILE);
 }
 
-/** Outline 按 productType 取该类产品的默认用例（defaults 映射显式维护） */
-export function getDefaultTradeCase(productType: ProductType): CreateTradeCase {
-  const { defaults } = doc();
-  const caseId = defaults[productType];
-  if (!caseId) {
-    throw new Error(
-      `No default case for product type '${productType}'. Configured: ${Object.keys(defaults).join(', ')}`,
-    );
-  }
-  return getCreateTradeCase(caseId);
+/** 按业务别名取参数模板（与 caseId 无关）：前置造数、非被测数据的建仓 */
+export function getTradePreset(presetName: string): CreateTradeCase {
+  return pickCase(doc().presets, presetName, `${TRADE_CASES_FILE} (presets)`);
+}
+
+/* ---------- 取消动作的数据（同模块内的另一种数据：单独文件、单独类型） ---------- */
+
+/** 与 CancelTradeDialog.cancelWith 的入参结构一致（结构化类型，无需 import 页面层） */
+export interface CancellationPreset {
+  effectiveDate: string;
+  reason: string;
+  comments?: string;
+}
+
+const CANCELLATION_FILE = 'test-data/trades/cancellation-details.yaml';
+
+export function getCancellationPreset(presetName: string): CancellationPreset {
+  const cancellationDoc = loadYaml<{ presets: Record<string, CancellationPreset> }>(
+    CANCELLATION_FILE,
+  );
+  return pickCase(cancellationDoc.presets, presetName, `${CANCELLATION_FILE} (presets)`);
 }
 
 /** 按产品类型解析 .dat 捕获文件路径；文件缺失时立刻报错而非让上传静默失败 */

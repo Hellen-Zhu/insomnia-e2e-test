@@ -1,17 +1,36 @@
-# 建仓用例参数库（trade 模块）——只放会变的业务参数。
+# 建仓数据（trade 模块）——只放会变的业务参数。
 # productType 是固定枚举、直接绑定 .dat 路径（代码级映射，见 trade-cases.ts），
 # 由场景步骤声明，不在此维护。
-# - cases: caseId → 参数；场景标题（"TRADE-001 - ..." 或 "[TRADE-001] ..."）引用
-# - caseId 编号：TRADE-<三位流水号>。模块前缀即命名空间（product 模块用 PRODUCT-xxx），
-#   跨模块不会撞号；号码只增不改不复用，接入 ADO 后机械替换为 work item ID
-# - defaults: Scenario Outline 按 productType 驱动时，每类产品的默认 caseId
+#
+# 两个命名空间，按数据角色分开：
+# - presets: 业务别名 → 参数模板。用于「建仓只是前置条件/数据细节与被测行为
+#   无关」的场景（Given a "FX_TRF" trade has been created），与 caseId 无关，可复用
+# - cases: caseId → 参数。用于「建仓本身是被测行为」的场景，
+#   经场景标题（"TRADE-001 - ..." 或 "[TRADE-001] ..."）绑定
+#
+# caseId 编号：TRADE-<三位流水号>。模块前缀即命名空间（product 模块用 PRODUCT-xxx），
+# 跨模块不会撞号；号码只增不改不复用，接入 ADO 后机械替换为 work item ID。
 # stepIn 可选：mode = full | partial，counterparty 为 step-in 对手方
 #（映射 create-trade-old-counterparty-combobox）。
 
-defaults:
-  FX_TRF: TRADE-001
-  FX_CO: TRADE-002
-  FX_FBS: TRADE-004
+# preset 编排：同一形状的变体共用命名空间，公共字段经锚点继承（&base / <<:），
+# 变体只声明自己的差异——改基线对手方一处，三个 preset 同步生效。
+presets:
+  standard: &base
+    counterparty: ACME Bank
+    portfolio: FX Derivatives
+
+  stepin-full:
+    <<: *base
+    stepIn:
+      mode: full
+      counterparty: Initech
+
+  stepin-partial:
+    <<: *base
+    stepIn:
+      mode: partial
+      counterparty: Initech
 
 cases:
   TRADE-001:
@@ -28,7 +47,3 @@ cases:
     stepIn:
       mode: partial
       counterparty: Initech
-
-  TRADE-004:
-    counterparty: Globex
-    portfolio: FX Derivatives

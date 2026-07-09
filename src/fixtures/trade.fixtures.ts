@@ -3,6 +3,7 @@ import { tradePortalTest } from './trade-portal.fixtures';
 import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
 import { NewTradePage } from '../pages/new-trade/new-trade.page';
 import { TradeFlow } from '../flows/trade.flow';
+import { TradeApi } from '../api/trade.api';
 import { caseIdFromTitle } from '../utils/case-data';
 import { getCreateTradeCase, type CreateTradeCase } from '../utils/trade-cases';
 
@@ -24,6 +25,8 @@ type TradeFixtures = {
   tradeDetailPage: TradeDetailPage;
   newTradePage: NewTradePage;
   tradeFlow: TradeFlow;
+  /** 交易造数客户端（multipart 建仓，前置 Given 使用） */
+  tradeApi: TradeApi;
   /** 本场景的建仓用例数据：从场景标题（`<caseId> - 描述`）解析，创建与验证步骤共用 */
   tradeCase: CreateTradeCase;
 };
@@ -33,6 +36,7 @@ export const test = tradePortalTest.extend<TradeFixtures>({
   newTradePage: async ({ page }, use) => use(new NewTradePage(page)),
   tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
     use(new TradeFlow(tradePortalPage, newTradePage)),
+  tradeApi: async ({ apiContext }, use) => use(new TradeApi(apiContext)),
   /* 懒加载：只有解构了 tradeCase 的步骤所在场景才要求标题带 caseId */
   tradeCase: async ({}, use, testInfo) =>
     use(getCreateTradeCase(caseIdFromTitle(testInfo.title))),
