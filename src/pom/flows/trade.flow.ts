@@ -43,4 +43,11 @@ export class TradeFlow {
     await this.portal.allTradesBlotter.row(tradeId).performAction('approve');
     await this.portal.checkerActionDialog.confirm();
   }
+
+  /** checker：搜索 → 行菜单 reject → 确认弹窗（与 approve 共用同一个确认弹窗） */
+  async rejectTrade(tradeId: string): Promise<void> {
+    await this.portal.filters.search(tradeId);
+    await this.portal.allTradesBlotter.row(tradeId).performAction('reject');
+    await this.portal.checkerActionDialog.confirm();
+  }
 }

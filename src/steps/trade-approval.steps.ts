@@ -77,6 +77,12 @@ When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, c
   await tradeFlow.approveTrade(ctx.require('tradeId'));
 });
 
+When('the checker rejects the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
+  await context.clearCookies();
+  await loginFlow.loginAs('checker');
+  await tradeFlow.rejectTrade(ctx.require('tradeId'));
+});
+
 Then(
   'the trade should show event status {string}',
   async ({ tradeFlow, ctx }, eventStatus: string) => {
