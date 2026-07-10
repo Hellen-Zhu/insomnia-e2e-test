@@ -4,19 +4,23 @@ import { env } from '../config/env';
 import type { APIRequestContext } from '@playwright/test';
 
 /**
- * 场景内跨步骤传递的数据键。基座只定义空集，
- * 各领域 fixtures 通过 declaration merging 注入自己的键：
+ * ScenarioContext 数据容器的键集合。plain 模式下测试体是同一个函数作用域，
+ * 跨 test.step 传数据**优先用局部变量 / helper 返回值**（类型系统保证存在性），
+ * 因此基座只定义空集，当前没有域声明键。确需经 ctx 流转的数据（如 fixture 写、
+ * 测试读的场景）由所在领域 fixtures 通过 declaration merging 按需注入：
  *
  *   declare module '../fixtures/base.fixtures' {
  *     interface ScenarioData { tradeId: string }
  *   }
- *
- * 键声明住在领域文件里，但运行时仍是同一个 ctx 对象——
- * 跨领域的数据流（如 tradeId 从交易域流向报表域）不受拆分影响。
  */
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ScenarioData {}
 
+/**
+ * 场景级上下文。主职责是两件与数据传递无关的横切事务：
+ * 清理登记（addCleanup，teardown 逆序执行）+ 失败取证（数据快照附加到报告）。
+ * set/get/require 的数据容器保留给确需经 ctx 流转的场景（键按需声明，见上）。
+ */
 export class ScenarioContext {
   private readonly data: Partial<ScenarioData> = {};
 

@@ -208,19 +208,19 @@ maker 创建 → checker 审批是**先后**发生的，因此不需要两个同
 完整示例见 `tests/trade-approval.spec.ts`：
 
 ```ts
-await givenTradeCreatedViaApi({ tradeApi, ctx }, 'FX_TRF'); // 前置：API 造数，不占浏览器
+const tradeId = await givenTradeCreatedViaApi({ tradeApi }, 'FX_TRF'); // 前置：API 造数，不占浏览器
 
 await test.step('When the checker approves the trade', async () => {
   await context.clearCookies();               // 清掉 maker 会话（前置走 API，从未登录过）
   await loginFlow.loginAs('checker');         // 以 checker 重新 UI 登录，落地即就绪
-  await tradeFlow.approveTrade(ctx.require('tradeId')); // ctx 跨角色天然共享
+  await tradeFlow.approveTrade(tradeId);      // 闭包直接可见，跨角色天然共享
 });
 ```
 
 要点：
 
-- 角色间传递业务产物（tradeId）走 `ctx`——它是场景级 fixture，与角色无关，
-  只需保证场景之间不串（fixture 机制已保证）
+- 角色间传递业务产物（tradeId）走 helper 返回值 + 闭包——整个测试体是同一个
+  函数作用域，与角色无关；场景之间不串由函数作用域天然保证
 - 切换角色 = 清 cookie + 重新登录；应用支持会话注入后只需改造 `LoginFlow`
 - 若某天确实需要两个角色**同时在线**交替操作（极少见），再在测试里临时
   `browser.newContext()` 开第二个会话，用完关闭
@@ -322,41 +322,42 @@ for (const { caseId, productType } of plainTrades) {
 塞进这张表，是因为它们验证的不是 productType 维度，而是各自单独成测试
 （`TRADE-004`/`TRADE-005`）。
 
-创建步骤都把实际使用的用例写入
-`ctx`（`ctx.set('tradeCase', ...)`），验证步骤统一从 `ctx` 读——断言与数据来源解耦。
+创建步骤与验证步骤共用同一个 `tradeCase`（fixture 注入后经闭包可见）——
+断言用的期望值与输入同源，不会出现"改了数据忘了改断言"的漂移。
 
 ### 跨步骤共享状态与数据隔离
 
-同一机制解决两件事：`src/fixtures/base.fixtures.ts` 中的 `ScenarioContext`（test 作用域 fixture）。
-
-- **共享**：步骤 A 写入 `ctx.xxx`，步骤 B 读取——每个测试内是同一个实例
-- **隔离**：测试结束实例销毁，测试之间、并行 worker 之间互不可见
+**跨 step 传数据：局部变量 + helper 返回值。** plain 模式下整个测试体是同一个
+函数作用域，`test.step` 的回调是闭包、且会透传返回值——数据的存在性由类型系统
+在编译期保证，不需要运行时容器：
 
 ```ts
-await test.step('When the maker creates a new trade', async () => {
-  ctx.set('tradeId', await tradeFlow.createTrade(request)); // 写入本场景上下文
-});
+const tradeId = await test.step('When the maker creates a new trade', () =>
+  tradeFlow.createTrade(request)); // test.step 透传返回值
 
 await test.step('Then the new trade should appear', async () => {
-  const tradeId = ctx.require('tradeId'); // 断言式读取：未写入时给出可诊断错误
-  await (await tradeFlow.findTradeRow(tradeId)).expectContains(tradeId);
+  await (await tradeFlow.findTradeRow(tradeId)).expectContains(tradeId); // 闭包直接可见
 });
 ```
 
-键声明在各领域 fixtures 文件中通过 declaration merging 注入基座的
-`ScenarioData` interface（见 `trade.fixtures.ts` 的 `declare module`），
-`set/get/require` 是泛型方法——**新增一份跨步骤数据 = 在本域文件加一行键声明**，
-读写自动获得类型推导；ctx 对象运行时仍是同一个，跨域数据流不受拆分影响；
-`require()` 在数据未产生时立即抛出可诊断错误，而非让 `undefined` 渗透到后续断言。
+`ScenarioContext`（`src/fixtures/base.fixtures.ts`，test 作用域 fixture）保留
+两个与数据传递无关的横切职责：
 
-**红线：禁止用 spec 文件的模块级变量共享状态**——同一 worker 会串场景，并行模式下必然 flaky。
+- **清理登记**：`ctx.addCleanup(...)`——API 造数的配套收尾，teardown 逆序执行、
+  单条失败不阻断其余、成功失败都跑
+- **失败取证**：失败时把写入 ctx 的数据附加到报告；数据键按需在领域 fixtures
+  经 declaration merging 声明（当前没有域在用——确需"fixture 写、测试读"或
+  跨 helper 不便传参时再声明）
+
+**红线：禁止用 spec 文件的模块级变量共享状态**——同一 worker 会串场景，并行模式下
+必然 flaky（测试函数内的局部变量没有这个问题：每次执行、每次 retry 都是新作用域）。
 
 隔离的完整层次：
 
 | 层次 | 机制 | 由谁保证 |
 |---|---|---|
 | 浏览器状态（cookie/storage） | 每个测试新建 browser context | Playwright 自动 |
-| 场景内运行时数据 | `ScenarioContext` fixture | 本框架 |
+| 场景内运行时数据 | 测试函数的局部变量（每次执行新作用域） | JS 作用域语义 |
 | 后端数据（并行互踩） | 每 worker 独立账号 / 每场景唯一数据 | 接入真实业务时按需实现 |
 
 后端隔离示例（需要时启用）——worker 作用域 fixture 按 `parallelIndex` 分配账号：
