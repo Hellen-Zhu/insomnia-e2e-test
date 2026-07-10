@@ -10,7 +10,7 @@ import { assertCaseIdPattern, loadCaseDoc, pickCase, type CaseDoc } from './case
 export const PRODUCT_TYPES = ['FX_TRF', 'FX_CO', 'FX_FBS'] as const;
 export type ProductType = (typeof PRODUCT_TYPES)[number];
 
-/** Gherkin 传入的产品类型是自由文本，此处校验并列出支持的类型 */
+/** 场景传入的产品类型是自由文本，此处校验并列出支持的类型 */
 export function assertProductType(value: string): ProductType {
   if (!(PRODUCT_TYPES as readonly string[]).includes(value)) {
     throw new Error(`Unknown product type '${value}'. Supported: ${PRODUCT_TYPES.join(', ')}`);

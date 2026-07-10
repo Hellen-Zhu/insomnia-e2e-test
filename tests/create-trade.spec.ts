@@ -1,0 +1,79 @@
+import { test } from '../src/fixtures/trade.fixtures';
+import { assertProductType, type CreateTradeCase } from '../src/utils/trade-cases';
+import type { TradeFlow } from '../src/pom/flows/trade.flow';
+import type { ScenarioContext } from '../src/fixtures/base.fixtures';
+
+/**
+ * 建仓（数据驱动）：用例参数按模块放在 test-data/trades/create-trade-cases.yaml，
+ * 测试经标题约定 "<caseId> - <业务描述>" 绑定自己的 case（tradeCase fixture 解析标题）。
+ * 每个 case 标题各自描述业务行为，报告读到的是不同行为而非同一描述重复 N 遍。
+ */
+
+type CreateTradeFixtures = {
+  tradeFlow: TradeFlow;
+  tradeCase: CreateTradeCase;
+  ctx: ScenarioContext;
+};
+
+/**
+ * 全部建仓测试共用的步骤序列：UI 创建 → 状态断言 → 数据回验。
+ * 差异全部在 caseId 绑定的数据里（counterparty/portfolio/stepIn），步骤文本不变。
+ * step 标题沿用 Gherkin 措辞，HTML 报告/trace 里读到的仍是业务语言。
+ */
+async function createTradeFromCaseDataAndVerify(
+  { tradeFlow, tradeCase, ctx }: CreateTradeFixtures,
+  productType: string,
+): Promise<void> {
+  await test.step(`When the maker creates a "${productType}" trade from the case data`, async () => {
+    ctx.set('tradeCase', tradeCase);
+    ctx.set('tradeId', await tradeFlow.createTrade(assertProductType(productType), tradeCase));
+  });
+  await test.step(
+    'Then the new trade should appear with status "New" and event status "pending approval"',
+    async () => {
+      const tradeId = ctx.require('tradeId');
+      const row = await tradeFlow.findTradeRow(tradeId);
+      await row.expectContains(tradeId, 'New', 'pending approval');
+    },
+  );
+  await test.step('And the trade row should match the case data', async () => {
+    const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
+    await row.expectContains(ctx.require('tradeCase').counterparty);
+  });
+}
+
+test.describe('Create trade (data-driven)', { tag: '@trade' }, () => {
+  /* Background：maker 登录（LoginFlow 末尾等落地页就绪）→ 直达 trade portal */
+  test.beforeEach(async ({ loginFlow, tradePortalPage }) => {
+    await test.step('Given I am logged in as "maker"', async () => {
+      await loginFlow.loginAs('maker');
+    });
+    await test.step('And I am on the trade portal', async () => {
+      await tradePortalPage.open();
+      await tradePortalPage.expectOpened();
+    });
+  });
+
+  /* Scenario Outline 的原生等价物：productType 是业务可见的差异轴，进表；
+   * 每行的 counterparty/portfolio 各自来自该行 caseId 对应的 case 数据，
+   * 可以相同也可以不同——表只要求 caseId 逐行不同，保证标题可追溯、报告不去重 */
+  const plainTrades = [
+    { caseId: 'TRADE-001', productType: 'FX_TRF' },
+    { caseId: 'TRADE-002', productType: 'FX_CO' },
+    { caseId: 'TRADE-003', productType: 'FX_FBS' },
+  ] as const;
+  for (const { caseId, productType } of plainTrades) {
+    test(`${caseId} - Create a plain ${productType} trade`, async ({ tradeFlow, tradeCase, ctx }) => {
+      await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase, ctx }, productType);
+    });
+  }
+
+  /* step-in 是独立于产品类型的流程分支，固定用 FX_FBS 各测一个模式，不进上面的表 */
+  test('TRADE-004 - Create an FX FBS trade with a full step-in', async ({ tradeFlow, tradeCase, ctx }) => {
+    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase, ctx }, 'FX_FBS');
+  });
+
+  test('TRADE-005 - Create an FX FBS trade with a partial step-in', async ({ tradeFlow, tradeCase, ctx }) => {
+    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase, ctx }, 'FX_FBS');
+  });
+});

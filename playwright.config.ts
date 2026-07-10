@@ -1,15 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
-import { defineBddConfig, cucumberReporter } from 'playwright-bdd';
 import { env } from './src/config/env';
 
-const testDir = defineBddConfig({
-  features: 'features/**/*.feature',
-  /* fixtures 必须在 steps pattern 内：playwright-bdd 从中识别导出的 test 实例 */
-  steps: ['src/steps/**/*.ts', 'src/fixtures/**/*.ts'],
-});
-
 export default defineConfig({
-  testDir,
+  testDir: './tests',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   /* CI 上失败重试 1 次，重试时保留 trace 供回放定位 */
@@ -19,10 +12,8 @@ export default defineConfig({
     ['list'],
     /* 场景级墙钟时间戳与耗时（日志对账用），不需要时删掉这行即可 */
     ['./src/reporters/timing-reporter.ts'],
-    /* 工程师用：Playwright 官方报告，含 trace/截图 */
+    /* 唯一 HTML 报告：test.step 标题即业务语言，工程师与业务方共用 */
     ['html', { outputFolder: 'reports/playwright-report', open: 'never' }],
-    /* 业务方用：Cucumber 格式报告，按 Feature/Scenario 组织 */
-    cucumberReporter('html', { outputFile: 'reports/cucumber-report.html' }),
   ],
   use: {
     baseURL: env.baseUrl,

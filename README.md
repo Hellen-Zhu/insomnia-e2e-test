@@ -1,17 +1,20 @@
-# E2E 自动化测试框架
+# E2E 自动化测试框架（plain Playwright 分支）
 
-基于 **Playwright + TypeScript + Cucumber（playwright-bdd）** 的端到端自动化测试框架，页面层采用 **POM（Page Object Model）** 模式。示例基于公开演示站 [saucedemo.com](https://www.saucedemo.com)，开箱即可运行。
+基于 **Playwright + TypeScript** 的端到端自动化测试框架（原生 test runner，无 BDD 层），页面层采用 **POM（Page Object Model）** 模式。示例基于公开演示站 [saucedemo.com](https://www.saucedemo.com)，开箱即可运行。
+
+> 本分支是 `feature/playwright-bdd-framework` 的原生风格实现：同样的测试覆盖、
+> 同样的 POM/fixtures/数据层，把 Gherkin(.feature) + steps 替换为 spec 文件 +
+> `test.step`。场景文本（Given/When/Then 措辞）保留在 `test.step` 标题里，
+> HTML 报告与 trace 中读到的仍是业务语言。
 
 ## 架构
 
 ```
-features/*.feature (Gherkin, 业务可读)
-        ↓ bddgen 编译
-.features-gen/ (Playwright 原生测试, 自动生成, git 忽略)
+tests/*.spec.ts (test.step 标题 = 业务语言)
         ↓
 Playwright Test Runner (并行 / 重试 / trace)
         ↓
-双报告: Playwright HTML(工程师) + Cucumber HTML(业务方)
+Playwright HTML 报告（step 层级即场景步骤，工程师与业务方共用）
 ```
 
 ## 快速开始
@@ -30,16 +33,15 @@ ENV=staging npm test    # 切换环境
 ## 目录结构与分层约定
 
 ```
-├── features/           # 特性层：Gherkin 场景（业务语言）
+├── tests/              # 场景层：spec 文件（test.step 标题用业务语言）
 ├── src/
 │   ├── pom/            # UI 模型层：唯一允许出现 Locator 的地方
 │   │   ├── flows/      #   流程层：跨页面业务流程编排（登录、下单）
 │   │   ├── pages/      #   页面层：POM，封装定位器与页面行为
 │   │   └── components/ #   组件层：设计系统组件对象（宿主→内部元素的映射）
-│   ├── steps/          # 步骤层：Gherkin ↔ flow/page 的薄胶水
 │   ├── fixtures/       # DI 中心：base（横切）+ 各业务域一个文件
 │   └── config/         # 配置层：环境相关配置（随 ENV 变化）
-├── test-data/          # 外部测试数据（JSON），Gherkin 中以业务别名引用
+├── test-data/          # 外部测试数据（YAML），测试经 caseId/业务别名引用
 ├── env/                # 各环境变量文件 (.env.dev / .env.staging ...)
 ├── playwright.config.ts
 └── .github/workflows/  # CI
@@ -49,13 +51,12 @@ ENV=staging npm test    # 切换环境
 
 | 层 | 职责 | 可以调用 | 禁止 |
 |---|---|---|---|
-| `features/` | 纯业务语言描述场景 | — | 选择器、URL 等技术细节 |
-| `src/steps/` | 一行 Gherkin ↔ 一次调用 | flow、page | component、Playwright 原语、业务逻辑 |
-| `src/pom/flows/` | 跨页面业务流程编排 + 到达断言 | page | 持有定位器、感知 Gherkin |
-| `src/pom/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page、感知 Gherkin |
+| `tests/` | 场景编排：`test.step` 业务标题 + 一步一次调用 | flow、page、fixtures | component、选择器/URL 等技术细节、业务逻辑 |
+| `src/pom/flows/` | 跨页面业务流程编排 + 到达断言 | page | 持有定位器、感知测试标题 |
+| `src/pom/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page |
 | `src/pom/components/` | 设计系统组件（宿主→内部） | 原语 | page、flow |
 
-**step 调 flow 还是 page？** 这行 Gherkin 跨页面（`the maker creates a new trade`）→ flow；单页动作（`the maker is on the trade portal`）→ page。
+**step 里调 flow 还是 page？** 这一步跨页面（`the maker creates a trade`）→ flow；单页动作（打开登录页）→ page。
 
 ## 如何扩展
 
@@ -80,23 +81,28 @@ export class ProfilePage extends BasePage {
 profilePage: async ({ page }, use) => use(new ProfilePage(page)),
 ```
 
-新业务域则新建 `<domain>.fixtures.ts`：从 `baseTest` extend 并导出
-`createBdd(test)` 的 Given/When/Then，该域的 steps 从这里导入。
-约束（playwright-bdd）：**一个 scenario 的步骤必须来自同一个 test 实例
-或其祖先**——领域之间不要互相 extend；多个域共享的页面/步骤提升为
-公共祖先层。当前继承链：base → tradePortal（应用入口：登录页 + portal
-+ LoginFlow）→ { trade, product }，登录/落地步骤对全部业务场景可用。
+新业务域则新建 `<domain>.fixtures.ts`：从 `baseTest`（或应用入口层）extend
+并导出 test 实例，该域的 spec 从这里导入。约束：**一个 spec 文件只从一个
+test 实例导入**（取所属业务域的实例）——领域之间不要互相 extend；多个域
+共享的页面/能力提升为公共祖先层。当前继承链：base → tradePortal（应用入口：
+登录页 + portal + LoginFlow）→ { trade, product }，登录/落地能力对全部业务域可用。
 
 ### 新增一个场景
 
-1. 在 `features/` 写 Gherkin 场景（优先复用已有步骤）
-2. 缺失的步骤在 `src/steps/` 补充，参数中直接声明所需页面对象：
+1. 在 `tests/` 对应 spec 文件里加一个 `test()`，标题按 `<caseId> - <业务描述>` 约定
+2. 步骤用 `test.step('业务语言标题', ...)` 包裹，一步一次 flow/page 调用：
 
 ```ts
-When('我保存个人资料', async ({ profilePage }) => {
-  await profilePage.save();
+test('PROFILE-001 - Update profile nickname', async ({ profilePage }) => {
+  await test.step('When I save my profile', async () => {
+    await profilePage.save();
+  });
 });
 ```
+
+多个测试共用同一步骤序列时，把 `test.step` 序列提取成本文件内的普通函数
+（fixtures 对象可整体转发，见 `tests/create-trade.spec.ts` 的
+`createTradeFromCaseDataAndVerify`）；跨 spec 文件复用的步骤提升到 flow 层。
 
 ### 组件对象层（设计系统项目必读）
 
@@ -124,7 +130,7 @@ export class ProfilePage extends BasePage {
 - 组件构造参数接收 `Locator`（宿主）而非 testid 字符串，天然支持嵌套：`new TextInput(row.getByTestId('qty'))`
 - 状态断言默认走原生 `disabled`/`aria-disabled`；若你们的组件禁用时只改宿主类名，在对应组件类中覆写 `expectDisabled`
 - Web Component（open shadow DOM）无需特殊处理，`host.locator('input')` 自动穿透
-- 分层依赖方向：Page → Component → Playwright 原语；组件不感知页面，更不感知 Gherkin
+- 分层依赖方向：Page → Component → Playwright 原语；组件不感知页面
 
 （注：示例站 saucedemo 的 `data-test` 直接打在原生元素上，无宿主包裹，因此示例页面对象未使用组件层。）
 
@@ -133,14 +139,16 @@ export class ProfilePage extends BasePage {
 定位：用接口把系统推到测试前置状态，**不做 API 功能测试**。基于 Playwright 内置的
 `APIRequestContext`（无需 axios）。位置：`src/api/`，每个业务域一个客户端文件。
 
-标准用法——Given 步骤造数 + 立刻登记清理，After hook 自动收尾：
+标准用法——前置 step 造数 + 立刻登记清理，`ctx` fixture 的 teardown 自动收尾：
 
 ```ts
-Given('a registered user {string} exists', async ({ userApi, ctx }, alias: string) => {
-  const user = await userApi.createUser(getUserTemplate(alias));   // 造数
-  ctx.addCleanup(() => userApi.deleteUser(user.id));               // 谁造谁登记
-});
-// 场景结束（无论成败）After hook 按逆序执行清理，单条失败不阻断其余
+async function givenRegisteredUser({ userApi, ctx }: SeedFixtures, alias: string) {
+  await test.step(`Given a registered user "${alias}" exists`, async () => {
+    const user = await userApi.createUser(getUserTemplate(alias)); // 造数
+    ctx.addCleanup(() => userApi.deleteUser(user.id));             // 谁造谁登记
+  });
+}
+// 场景结束（无论成败）ctx fixture 的 teardown 按逆序执行清理，单条失败不阻断其余
 ```
 
 约定：
@@ -148,73 +156,64 @@ Given('a registered user {string} exists', async ({ userApi, ctx }, alias: strin
 - 所有请求统一断言 2xx（`ApiClient` 基类内置）——造数失败立刻炸，不让 UI 步骤跑在残缺数据上
 - API 地址走 `env/.env.*` 的 `API_BASE_URL`（未配置回退 `BASE_URL`）
 - 鉴权：在 `fixtures/base.fixtures.ts` 的 `apiContext` 处加 `extraHTTPHeaders`，token 用 worker 作用域 fixture 获取（每 worker 登录一次）
-- 层级关系：steps/flows/hooks 可调 api 层；api 层不感知页面
+- 层级关系：tests/flows 可调 api 层；api 层不感知页面
 - `user.api.ts` 是模板，按真实后端契约调整路径与类型
 
 ### 角色化登录
 
 登录以**角色**为参数，凭证收口在 `src/config/users.ts`（角色 → 用户名/密码映射，
 env 里只放 URL 类配置；真实项目中密码经 CI secrets 注入）。
-应用暂不支持会话注入/缓存，**每次登录都真实走 UI**。两类步骤按用途选：
+应用暂不支持会话注入/缓存，**每次登录都真实走 UI**。两类用法按用途选：
 
-- `Given I am logged in as "maker"`：业务场景的登录前置（`auth.steps.ts`）。
-  走 `LoginFlow`：登录页 → 提交凭证 → **等落地页就绪**（portal URL + blotter
-  渲染断言），后续步骤开始时页面已可操作；中途切换角色（maker→checker）
-  先清 cookie 再登录
-- `When I login as "maker"` / `Then the trade portal should be visible`：
-  细粒度步骤，用于登录功能本身的测试（`login.feature`）
+- `loginFlow.loginAs('maker')`：业务场景的登录前置（通常包在 `beforeEach` 的
+  `test.step` 里）。走 `LoginFlow`：登录页 → 提交凭证 → **等落地页就绪**（portal
+  URL + blotter 渲染断言），后续步骤开始时页面已可操作；中途切换角色
+  （maker→checker）先清 cookie 再登录
+- `loginPage.login(username, password)` + 逐项断言：细粒度用法，
+  登录功能本身的测试（`tests/login.spec.ts`）
 - 需要未登录状态的场景什么都不声明即可——登录态不隐式预注入
 
-将来应用支持会话注入/缓存时，在 `LoginFlow` 或 auth 步骤处收口改造，
-feature 文本与业务步骤都不需要动。
-场景之间的隔离不受影响：每个场景仍是全新 browser context。
+将来应用支持会话注入/缓存时，在 `LoginFlow` 处收口改造，
+spec 的步骤标题与调用点都不需要动。
+场景之间的隔离不受影响：每个测试仍是全新 browser context。
 
 ### Retry 与 flaky 治理
 
 重试配置的三个层级：
 
 ```ts
-retries: process.env.CI ? 1 : 0          // playwright.config.ts 全局默认（已配）
+retries: process.env.CI ? 1 : 0              // playwright.config.ts 全局默认（已配）
 ```
-```gherkin
-@retries:2                                # playwright-bdd 特殊标签，场景/feature 级
-Scenario: 依赖第三方回调的场景
+```ts
+test.describe.configure({ retries: 2 });      // 文件/describe 块级覆盖
 ```
 ```bash
-npx playwright test --retries=3           # 命令行临时覆盖
+npx playwright test --retries=3               # 命令行临时覆盖
 ```
 
 flaky 治理流程（retry 是止血不是治病）：
 
 1. **显形**：重试后才过的用例在报告中标为 `flaky`（黄色），定期审计
-2. **复现**：`npx playwright test --repeat-each=10 -g "场景名"` 把偶发变必发，配合 trace 定位
+2. **复现**：`npx playwright test --repeat-each=10 -g "测试名"` 把偶发变必发，配合 trace 定位
 3. **修根因**：四大来源——即时快照断言（用 `expect().toBeVisible()` 替代 `isVisible()`）、
    固定 sleep、并行数据互踩、动画未稳定
-4. **隔离**：短期修不好的打 `@flaky`，CI 主流程 `bddgen --tags "not @flaky"` 排除，
-   隔离区单独跑不阻塞合并，修复后放回
+4. **隔离**：短期修不好的打 `{ tag: '@flaky' }`，CI 主流程
+   `playwright test --grep-invert @flaky` 排除，隔离区单独跑不阻塞合并，修复后放回
 
 ### 多角色场景（maker/checker 四眼审批）
 
 maker 创建 → checker 审批是**先后**发生的，因此不需要两个同时存活的浏览器会话：
 同一会话内切换角色即可（清 cookie → 以新角色重新登录），
 页面对象只需一套，凭证由 `src/config/users.ts` 按角色解析。
-完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
-
-```gherkin
-Given a "FX_TRF" trade has been created via api   # 前置：走 API 造数，不占浏览器
-When the checker approves the trade               # 被测行为：从这里才开始用 UI
-Then the trade should show event status "Approved"
-```
+完整示例见 `tests/trade-approval.spec.ts`：
 
 ```ts
-Given('a {string} trade has been created via api', (fixtures, productType: string) =>
-  seedTradeWithPreset(fixtures, productType, 'standard'),  // preset：与 caseId 无关的业务别名模板
-);
+await givenTradeCreatedViaApi({ tradeApi, ctx }, 'FX_TRF'); // 前置：API 造数，不占浏览器
 
-When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
-  await context.clearCookies();                // 清掉 maker 会话（前置走 API，从未登录过）
-  await loginFlow.loginAs('checker');          // 以 checker 重新 UI 登录，落地即就绪
-  await tradeFlow.approveTrade(ctx.require('tradeId'));  // ctx 跨角色天然共享
+await test.step('When the checker approves the trade', async () => {
+  await context.clearCookies();               // 清掉 maker 会话（前置走 API，从未登录过）
+  await loginFlow.loginAs('checker');         // 以 checker 重新 UI 登录，落地即就绪
+  await tradeFlow.approveTrade(ctx.require('tradeId')); // ctx 跨角色天然共享
 });
 ```
 
@@ -223,49 +222,47 @@ When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, c
 - 角色间传递业务产物（tradeId）走 `ctx`——它是场景级 fixture，与角色无关，
   只需保证场景之间不串（fixture 机制已保证）
 - 切换角色 = 清 cookie + 重新登录；应用支持会话注入后只需改造 `LoginFlow`
-- 若某天确实需要两个角色**同时在线**交替操作（极少见），再在步骤里临时
+- 若某天确实需要两个角色**同时在线**交替操作（极少见），再在测试里临时
   `browser.newContext()` 开第二个会话，用完关闭
 
-### Hooks（Before/After）
+### 横切逻辑（原 BDD 分支的 hooks 层）
 
-位置：`src/steps/hooks.ts`。执行顺序：
+plain Playwright 没有独立的 Before/After hook 层——横切逻辑收进 fixture 与原生机制：
 
-```
-fixture setup → Before hooks → Background → 场景步骤 → After hooks → fixture teardown
-```
+- **条件准备**：`test.use({ viewport: { width: 390, height: 844 } })` 写在
+  describe 块或单独的项目（project）里（原 `@mobile` 标签 hook 的原生等价物）
+- **横切收尾**：写在 fixture `use()` 之后的 teardown 里——失败时附加 `ctx`
+  取证快照 + 执行登记的清理动作已内置在 `ctx` fixture（`src/fixtures/base.fixtures.ts`）
+- **文件内前置**：`test.beforeEach`（即 Background 的等价物，见
+  `tests/create-trade.spec.ts`）
 
-**先问：真的需要 hook 吗？** 浏览器生命周期、失败截图/trace、每场景状态隔离都已由
-Playwright/config/fixture 承担。hook 只保留两类职责：
-
-- **标签驱动的条件准备**：`Before({ tags: '@mobile' }, ...)` 只对打标场景生效
-- **横切收尾**：`After` 里清理场景产生的后端数据、失败时附加 `ctx` 到报告（已内置）
-
-注意：`BeforeAll/AfterAll` 是**每 worker 一次**（Playwright 是多进程模型），不是全局一次；
-"全局仅一次"的准备用 Playwright 的 `globalSetup` 配置。
+执行顺序：`fixture setup → beforeEach → 测试步骤 → afterEach → fixture teardown`。
+注意 worker 是多进程模型，"每 worker 一次"的准备用 worker 作用域 fixture；
+"全局仅一次"的准备用 `globalSetup` 配置。
 
 ### 数据驱动的三个层次
 
-选型标准：**业务方评审场景时需要看到这个数据吗？**
+选型标准：**业务方读报告/评审用例时需要看到这个数据吗？**
 
 | 层次 | 方式 | 适用 | 示例 |
 |---|---|---|---|
-| 1 | `Scenario Outline` + `Examples` | 数据量小且差异即业务规则 | `login.feature` 的无效凭证表 |
-| 2 | 步骤 DataTable | 单场景的结构化输入 | 行内键值参数表 |
-| 3 | `test-data/*` + 业务别名 | 数据量大或细节与业务无关 | `creates a trade using case "TC001"` |
+| 1 | 数据表 + `for` 循环生成测试 | 数据量小且差异即业务规则 | `login.spec.ts` 的无效凭证表 |
+| 2 | 结构化参数对象直接写在测试内 | 单场景的结构化输入 | 行内参数对象 |
+| 3 | `test-data/*` + caseId/业务别名 | 数据量大或细节与业务无关 | `create-trade.spec.ts` |
 
-层次 3 的约定：**caseId 放在场景标题里，不进步骤文本**——支持两种格式：
+层次 3 的约定：**caseId 放在测试标题里，不进步骤文本**——支持两种格式：
 `[<caseId>] <业务描述>`（ADO 风格，与 playwright-azure-reporter 的匹配格式一致，
 便于将来回写 Test Plans）或 `<caseId> - <业务描述>`。caseId 的形态由编号源头决定：
 有 TMS（ADO）时照抄 work item ID；自管编号用 `<MODULE>-<流水号>`（TRADE-001），
 **模块前缀即命名空间**——每个模块只在自己的 YAML 里编号，跨模块结构上不会撞号，
 加载器按模块模式校验（`assertCaseIdPattern`），文件内重复由 YAML 解析器直接拒绝。
 数据文件用 **YAML**（支持注释记录 case 缘由/ticket、锚点复用公共字段、QA 手写友好）；
-机器生成/消费的数据才用 JSON。建仓的完整示例（`features/create-trade.feature`）：
+机器生成/消费的数据才用 JSON。建仓的完整示例（`tests/create-trade.spec.ts`）：
 
-```gherkin
-Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
-  When the maker creates a "FX_FBS" trade from the case data
-  And the trade row should match the case data     # 验证点同样消费用例数据
+```ts
+test('TRADE-004 - Create an FX FBS trade with a full step-in', async ({ tradeFlow, tradeCase, ctx }) => {
+  await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase, ctx }, 'FX_FBS');
+});
 ```
 
 机制与约定：
@@ -279,48 +276,50 @@ Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
   cases 放在一起（同一种数据的两个视角）。单文件起步；用例攒多后把文件原地升级为
   同名目录、**按功能面**拆成任意多个同构分片（`core.yaml`、`stepin.yaml`…，每片
   仍是 presets+cases 同文件），`loadCaseDoc` 自动合并两命名空间并检测跨文件重复
-  caseId（指明两个来源文件）；访问函数签名不变，steps/fixtures 零改动。
+  caseId（指明两个来源文件）；访问函数签名不变，tests/fixtures 零改动。
   锚点继承不跨文件——继承链写在同一分片内。类型区分在访问器层：
   `getTradePreset() → CreateTradeCase`、`getCancellationPreset() → CancellationPreset`，
   拿错数据种类是编译错误；通用加载在 `src/utils/case-data.ts`
 - **并行安全**：YAML 是只读输入，`getCase` 返回**深拷贝**——步骤改了数据只影响
   本场景副本，不会经 worker 内共享缓存污染后续场景；运行时产物（tradeId）走
-  场景级 `ctx`；需要"每次运行唯一"的输入时在步骤里用 `testInfo.workerIndex`/时间戳派生
+  场景级 `ctx`；需要"每次运行唯一"的输入时在测试里用 `testInfo.workerIndex`/时间戳派生
 - **fail-fast**：caseId 不存在列出全部可用值；`.dat` 缺失立刻报错，不让上传静默失败
 - **productType 不进 YAML**：它是固定枚举、直接绑定 `.dat` 路径
   （`test-data/trades/dat/{FX_TRF|FX_CO|FX_FBS}.dat`，代码级映射见 `trade-cases.ts`），
-  由场景步骤声明（`creates a "FX_TRF" trade ...`）；YAML 只放会变的业务参数
+  由测试步骤声明（`creates a "FX_TRF" trade ...`）；YAML 只放会变的业务参数
   （counterparty/portfolio/stepIn），step-in 是可选字段而非独立流程
 - **presets 与 cases 分开**：建仓只是**前置条件**（被测的是审批/取消等后续行为）时，
-  数据不绑 caseId——用 `presets` 里的业务别名模板，Given 走 API 造数（不占浏览器）：
-  `Given a "FX_TRF" trade has been created via api`（standard 模板）、
-  `... with a full step-in via api`、`... with a partial step-in via api`。
-  presets 是小而稳定的枚举集合，不像 cases 会随覆盖率增长，所以一个 Given 对应一种
-  自然语言短语，不把 preset 的 YAML key 当参数塞进引号暴露给 Gherkin 文本
-- 新增用例 = YAML 加一段 + 标题带 caseId 的新场景，代码零改动
+  数据不绑 caseId——用 `presets` 里的业务别名模板，前置 step 走 API 造数（不占浏览器）：
+  `givenTradeCreatedViaApi(fixtures, 'FX_TRF')`（standard 模板；step 标题把 preset
+  语义写成自然语言，不把 YAML key 暴露进报告文本）。presets 是小而稳定的枚举集合，
+  不像 cases 会随覆盖率增长
+- 新增用例 = YAML 加一段 + 标题带 caseId 的新测试，代码零改动
 
 **场景怎么组织（报告可读性优先）**：
 
-- **一个 case 一个场景**，标题各自描述业务行为（`TRADE-004 - Create an FX FBS trade with a full step-in`）——
-  报告里读到的是不同的行为，而不是"同一个描述跑了 N 遍"；caseId 不进 Examples
-- **Scenario Outline 只用在差异点本身业务可见**的场合：差异（如 productType）
-  写进标题模板，每行生成的测试名天然不同：
+- **一个 case 一个测试**，标题各自描述业务行为（`TRADE-004 - Create an FX FBS trade with a full step-in`）——
+  报告里读到的是不同的行为，而不是"同一个描述跑了 N 遍"
+- **参数化循环（Scenario Outline 的原生等价物）只用在差异点本身业务可见**的场合：
+  差异（如 productType）写进标题模板，每行生成的测试名天然不同：
 
-```gherkin
-Scenario Outline: <caseId> - Create a plain <productType> trade
-  When the maker creates a "<productType>" trade from the case data
-  Examples:
-    | caseId    | productType |
-    | TRADE-001 | FX_TRF      |
-    | TRADE-002 | FX_CO       |
-    | TRADE-003 | FX_FBS      |
+```ts
+const plainTrades = [
+  { caseId: 'TRADE-001', productType: 'FX_TRF' },
+  { caseId: 'TRADE-002', productType: 'FX_CO' },
+  { caseId: 'TRADE-003', productType: 'FX_FBS' },
+] as const;
+for (const { caseId, productType } of plainTrades) {
+  test(`${caseId} - Create a plain ${productType} trade`, async ({ tradeFlow, tradeCase, ctx }) => {
+    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase, ctx }, productType);
+  });
+}
 ```
 
-Outline 里每一行仍然带独立 caseId，标题因此逐行不同，报告不会把三行读成"同一描述
+循环里每一行仍然带独立 caseId，标题因此逐行不同，报告不会把三行读成"同一描述
 重复三次"。caseId 是驱动这张表的唯一必要列——每行对应 case 的 counterparty/portfolio
 该相同就相同、该不同就不同，`tradeCase` fixture 按 caseId 查出完整数据，不要求同一张
 表里的其它字段也保持一致。真正业务上独立的分支（如 step-in 的 full/partial）不适合
-塞进这张表，是因为它们验证的不是 productType 维度，而是各自单独成场景
+塞进这张表，是因为它们验证的不是 productType 维度，而是各自单独成测试
 （`TRADE-004`/`TRADE-005`）。
 
 创建步骤都把实际使用的用例写入
@@ -330,16 +329,16 @@ Outline 里每一行仍然带独立 caseId，标题因此逐行不同，报告�
 
 同一机制解决两件事：`src/fixtures/base.fixtures.ts` 中的 `ScenarioContext`（test 作用域 fixture）。
 
-- **共享**：步骤 A 写入 `ctx.xxx`，步骤 B 读取——每个场景内是同一个实例
-- **隔离**：场景结束实例销毁，场景之间、并行 worker 之间互不可见
+- **共享**：步骤 A 写入 `ctx.xxx`，步骤 B 读取——每个测试内是同一个实例
+- **隔离**：测试结束实例销毁，测试之间、并行 worker 之间互不可见
 
 ```ts
-When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTable) => {
-  ctx.set('tradeId', await tradeFlow.createTrade(request));  // 写入本场景上下文
+await test.step('When the maker creates a new trade', async () => {
+  ctx.set('tradeId', await tradeFlow.createTrade(request)); // 写入本场景上下文
 });
 
-Then('the new trade should appear ...', async ({ tradeFlow, ctx }) => {
-  const tradeId = ctx.require('tradeId');  // 断言式读取：未写入时给出可诊断错误
+await test.step('Then the new trade should appear', async () => {
+  const tradeId = ctx.require('tradeId'); // 断言式读取：未写入时给出可诊断错误
   await (await tradeFlow.findTradeRow(tradeId)).expectContains(tradeId);
 });
 ```
@@ -350,13 +349,13 @@ Then('the new trade should appear ...', async ({ tradeFlow, ctx }) => {
 读写自动获得类型推导；ctx 对象运行时仍是同一个，跨域数据流不受拆分影响；
 `require()` 在数据未产生时立即抛出可诊断错误，而非让 `undefined` 渗透到后续断言。
 
-**红线：禁止用 steps 文件的模块级变量共享状态**——同一 worker 会串场景，并行模式下必然 flaky。
+**红线：禁止用 spec 文件的模块级变量共享状态**——同一 worker 会串场景，并行模式下必然 flaky。
 
 隔离的完整层次：
 
 | 层次 | 机制 | 由谁保证 |
 |---|---|---|
-| 浏览器状态（cookie/storage） | 每个场景新建 browser context | Playwright 自动 |
+| 浏览器状态（cookie/storage） | 每个测试新建 browser context | Playwright 自动 |
 | 场景内运行时数据 | `ScenarioContext` fixture | 本框架 |
 | 后端数据（并行互踩） | 每 worker 独立账号 / 每场景唯一数据 | 接入真实业务时按需实现 |
 
@@ -378,23 +377,18 @@ account: [
 
 ## IDE 支持（VS Code）
 
-打开项目时按提示安装推荐扩展（`.vscode/extensions.json` 已配置），其中
-**Cucumber 官方扩展** 提供 feature ↔ 步骤定义的导航：
+打开项目时按提示安装推荐扩展（`.vscode/extensions.json` 已配置）。
+**Playwright 官方扩展** 直接对 `tests/*.spec.ts` 提供：
 
-| 操作 | 快捷键 |
+| 操作 | 入口 |
 |---|---|
-| 从 feature 步骤跳到步骤定义 | 步骤上 `F12` 或 `⌘/Ctrl + Click` |
-| 写步骤时自动补全已有步骤 | 直接输入触发（复用优先的关键） |
-| 未定义步骤检测 | 编辑器内直接标黄 |
+| 单测试运行/调试 | 编辑器行侧的 ▶ 按钮 |
+| Pick locator / 录制 | Testing 侧边栏 |
+| trace 查看 | 失败后点击结果条目 |
 
-路径映射在 `.vscode/settings.json` 的 `cucumber.features` / `cucumber.glue`，
-新增步骤目录时需同步更新。Playwright 官方扩展可对 `.features-gen` 生成的
-测试提供运行/调试按钮（先执行 `npx bddgen`）。
-
-说明：Cucumber 扩展是纯静态语言服务器（解析 Gherkin + 扫描 `Given/When/Then`
-的 cucumber expression），不运行测试，因此与 playwright-bdd 完全兼容——
-这是 playwright-bdd 官方文档推荐的 IDE 集成方式。注意 **官方 Cucumber 扩展**
-与 **Cucumber (Gherkin) Full Support**（alexkrechik）二选一，同时启用会冲突。
+无需任何额外的语言服务器——spec 就是 TypeScript，`F12`/重命名/查找引用
+对步骤助手函数原生可用（这是相对 BDD 分支的一项工程收益：步骤文本与实现
+之间不再有一层需要扩展弥合的间接）。
 
 ## 定位器规范
 

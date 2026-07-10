@@ -1,4 +1,4 @@
-import { test as base } from 'playwright-bdd';
+import { test as base } from '@playwright/test';
 import { UserApi } from '../api/user.api';
 import { env } from '../config/env';
 import type { APIRequestContext } from '@playwright/test';
@@ -62,7 +62,7 @@ export class ScenarioContext {
 /**
  * 基座 fixtures：与浏览器页面无关的横切能力（ctx、API 造数）。
  * 登录相关能力在应用入口层（trade-portal.fixtures），因为它依赖页面对象。
- * playwright-bdd 要求同一 scenario 的步骤来自同一实例或其祖先，
+ * 一个 spec 文件只从一个 test 实例导入（取所属业务域的实例），
  * 因此领域之间不要互相依赖，只沿继承链向上依赖。
  */
 type BaseFixtures = {
@@ -79,5 +79,18 @@ export const baseTest = base.extend<BaseFixtures>({
     await apiContext.dispose();
   },
   userApi: async ({ apiContext }, use) => use(new UserApi(apiContext)),
-  ctx: async ({}, use) => use(new ScenarioContext()),
+  /* teardown（use 之后）承担原 BDD 分支 After hooks 的两项横切收尾 */
+  ctx: async ({}, use, testInfo) => {
+    const ctx = new ScenarioContext();
+    await use(ctx);
+    /* 失败取证增强：把 ScenarioContext 附加到报告，便于还原现场 */
+    if (testInfo.error) {
+      await testInfo.attach('scenario-context', {
+        body: JSON.stringify(ctx, null, 2),
+        contentType: 'application/json',
+      });
+    }
+    /* 数据清理：执行本场景登记过的清理动作（API 造数的配套收尾），成功失败都跑 */
+    await ctx.runCleanups();
+  },
 });

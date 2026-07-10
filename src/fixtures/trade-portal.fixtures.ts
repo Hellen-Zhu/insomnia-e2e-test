@@ -1,4 +1,3 @@
-import { createBdd } from 'playwright-bdd';
 import { baseTest } from './base.fixtures';
 import { LoginPage } from '../pom/pages/login.page';
 import { TradePortalPage } from '../pom/pages/trade-portal/trade-portal.page';
@@ -7,7 +6,7 @@ import { LoginFlow } from '../pom/flows/login.flow';
 /**
  * 应用入口层：登录页 + trade portal（落地页）+ UI 登录流程。
  * 所有业务域从这里 extend（base → tradePortal → { trade, product, ... }），
- * 本层注册的步骤（登录、到达/落地断言）对全部业务场景可用。
+ * 本层提供的能力（登录流程、落地断言）对全部业务域的 spec 可用。
  *
  * 登录目前只有 UI 一条通道（应用暂不支持会话注入/缓存），每次都真实登录；
  * 将来支持后在 LoginFlow 或此处收口，步骤文本不变。
@@ -24,5 +23,3 @@ export const tradePortalTest = baseTest.extend<TradePortalFixtures>({
   loginFlow: async ({ loginPage, tradePortalPage }, use) =>
     use(new LoginFlow(loginPage, tradePortalPage)),
 });
-
-export const { Given, When, Then } = createBdd(tradePortalTest);

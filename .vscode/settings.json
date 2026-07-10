@@ -1,8 +1,4 @@
 {
-  // Cucumber 语言服务器：feature ↔ 步骤定义 的双向导航与补全
-  "cucumber.features": ["features/**/*.feature"],
-  "cucumber.glue": ["src/steps/**/*.ts"],
-
   // 使用项目自带的 TypeScript（项目是 TS 6，VS Code 内置为 5.x，避免推断差异）
   "typescript.tsdk": "node_modules/typescript/lib",
 

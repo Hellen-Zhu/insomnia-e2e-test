@@ -1,4 +1,3 @@
-import { createBdd } from 'playwright-bdd';
 import { tradePortalTest } from './trade-portal.fixtures';
 import { TradeDetailPage } from '../pom/pages/trade-detail/trade-detail.page';
 import { NewTradePage } from '../pom/pages/new-trade/new-trade.page';
@@ -37,9 +36,7 @@ export const test = tradePortalTest.extend<TradeFixtures>({
   tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
     use(new TradeFlow(tradePortalPage, newTradePage)),
   tradeApi: async ({ apiContext }, use) => use(new TradeApi(apiContext)),
-  /* 懒加载：只有解构了 tradeCase 的步骤所在场景才要求标题带 caseId */
+  /* 懒加载：只有解构了 tradeCase 的测试才要求标题带 caseId */
   tradeCase: async ({}, use, testInfo) =>
     use(getCreateTradeCase(caseIdFromTitle(testInfo.title))),
 });
-
-export const { Given, When, Then } = createBdd(test);

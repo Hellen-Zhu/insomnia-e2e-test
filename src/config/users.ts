@@ -1,5 +1,5 @@
 /**
- * 角色 → 登录凭证映射。场景里只出现角色名（Given I am logged in as "maker"），
+ * 角色 → 登录凭证映射。场景里只出现角色名（loginAs('maker')），
  * 凭证细节收口在这里。
  *
  * saucedemo 是公开演示站点，凭证公开、可入库。真实项目中：
@@ -18,7 +18,7 @@ const users: Record<Role, Credentials> = {
   checker: { username: 'standard_user', password: 'secret_sauce' },
 };
 
-/** Gherkin 传入的角色名是自由文本，此处校验并给出可用角色列表 */
+/** 场景传入的角色名是自由文本，此处校验并给出可用角色列表 */
 export function credentialsFor(role: string): Credentials {
   const user = users[role as Role];
   if (!user) {
