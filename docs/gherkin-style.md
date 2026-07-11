@@ -85,12 +85,22 @@ approve / reject（不用 authorise / decline）· case data（caseId 绑定的�
 |---|---|---|
 | `the trade is pending approval` | New + pending approval + 行已在 blotter | 创建后（主语可加装饰变体 new / full step-in / partial step-in） |
 | `the trade is approved and marked as new` | New + Approved | 建仓获批 |
-| `the trade is approved and marked as cancelled` | Cancelled + Approved | 取消获批 |
-| `the trade is approved and marked as amended` | Amended + Approved | 修改获批 |
-| `the trade is rejected` | Rejected（暂一维） | 拒绝后交易状态列的行为待真机确认，再升级为二维 |
+| `the trade is approved and marked as cancelled` | Cancelled + Approved | 取消获批（尚无场景覆盖） |
+| `the trade is approved and marked as amended` | Amended + Approved | 修改获批（尚无场景覆盖） |
+| `the trade is rejected and marked as new` | New + Rejected | 建仓被拒（TRADE-102，已验证） |
+| `the trade is rejected and marked as cancelled` | Cancelled + Rejected | 取消被拒（尚无场景覆盖，**列值未验证——见下方警告**） |
+| `the trade is rejected and marked as amended` | Amended + Rejected | 修改被拒（尚无场景覆盖，**列值未验证——见下方警告**） |
 
-approve 批的是 **pending 事件**，交易状态取决于事件类型——所以结果短语必须
-同时锁定两个维度，单说 "approved" 会丢失"批完之后交易是什么"。
+approve/reject 批的都是 **pending 事件**，交易状态取决于事件类型——所以结果
+短语必须同时锁定两个维度（裁决 × 交易状态），单说 "approved"/"rejected" 会
+丢失"批完/拒完之后交易是什么"。
+
+**注意**：reject 侧的 cancelled/amended 两行是**结构上的推广**，不是已验证的
+事实——目前只有 `new`（建仓被拒）有真实测试覆盖。取消/修改被拒后交易状态更
+可能是"维持被裁决前的状态"而非"套用 approve 侧的同名值"（例如取消被拒后
+交易该维持获批前的状态，而不是变成 Cancelled——Cancelled 应该是取消**成功**
+才有的结果）。新增取消/修改的拒绝场景前，先跟真实应用确认列值，不要照抄这
+张表的结构直接假定。
 
 ### 机制限定语
 
@@ -105,4 +115,4 @@ approve 批的是 **pending 事件**，交易状态取决于事件类型——�
 2. 主语在角色表里吗？
 3. 句式符合前缀模板吗？
 4. 模板字符串里的参数属于允许的两类吗？
-5. 新状态短语？——在 `tests/trade-approval.spec.ts` 的映射表处登记，并更新本词汇表
+5. 新状态短语？——在 `tests/trade-approval.spec.ts` 的 `STATUS_BY_PHRASE` 映射表处登记，并更新本词汇表
