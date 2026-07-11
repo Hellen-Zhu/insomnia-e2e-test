@@ -3,23 +3,25 @@ import * as path from 'node:path';
 import { parse } from 'yaml';
 
 /**
- * 通用的用例数据 YAML 加载器。
+ * 通用的用例数据加载器：test-data/ 下全部 YAML 汇入一张全局索引，
+ * 取数只凭键（caseId / preset 别名），不需要指明数据种类或所在文件。
  *
  * 组织约定（三级，防止数据堆在一起）：
- *   test-data/<module>/ 模块目录 → 每种数据一个文件或目录（loadCaseDoc，
- *   形状不同即分家；量大时文件升级为分片目录）→ 文件内 presets/cases 两命名空间。
- * 各模块提供自己的类型化访问函数（见 trade-cases.ts），跨模块只经访问函数取数。
+ *   test-data/<module>/ 模块目录 → 每种数据一个文件或目录（形状不同即分家；
+ *   量大时文件原地升级为分片目录）→ 文件内 presets/cases 两命名空间。
+ *   文件怎么组织是数据侧的自由——索引扫描整棵目录树，移动/拆分/新增文件，
+ *   取数代码零改动。
  *
  * 并行安全：
  *   - YAML 是只读输入，按文件缓存（每个 worker 进程各有一份缓存，互不可见）
- *   - pickCase 返回 structuredClone 深拷贝——场景步骤改了数据也只影响本场景的
- *     副本，不会污染同 worker 后续场景（这是共享缓存最隐蔽的串数据途径）
+ *   - getCase/getPreset 返回 structuredClone 深拷贝——场景步骤改了数据也只影响
+ *     本场景的副本，不会污染同 worker 后续场景（这是共享缓存最隐蔽的串数据途径）
  *   - 运行时产生的数据（tradeId 等）一律走场景级 ctx，与静态输入分离
  */
 const cache = new Map<string, unknown>();
 
 /**
- * 读取并缓存整个 YAML 文档（模块自行定义文档结构，如 presets + cases）。
+ * 读取并缓存整个 YAML 文档。
  * merge: true 启用合并键（<<: *anchor）——变体 preset 继承基线、只声明差异。
  */
 export function loadYaml<T>(relativeFile: string): T {
@@ -33,92 +35,125 @@ export function loadYaml<T>(relativeFile: string): T {
 }
 
 /**
- * 一"种"用例数据的通用文档形状：两个命名空间。
- * presets——业务别名 → 参数模板（前置造数、与被测行为无关的数据）；
- * cases——caseId → 参数（该数据种类本身是被测行为时，经场景标题绑定）。
- * 两者都可省略（纯 preset 文件不需要 cases，反之亦然）。
+ * 单个数据文件的文档形状：**顶层键即命名空间**。
+ * cases——caseId → 参数（数据本身是被测行为时，经场景标题绑定；全局唯一的一个命名空间）；
+ * <kind>_preset——业务别名 → 参数模板（前置造数；每种数据自带命名空间，如
+ * trade_preset / cancel_preset，别名只需命名空间内唯一——两边都可以叫 standard）。
  */
-export interface CaseDoc<T> {
-  presets?: Record<string, T>;
-  cases?: Record<string, T>;
-}
+export type CaseDoc<T> = Record<string, Record<string, T> | undefined>;
 
-const docCache = new Map<string, unknown>();
+/* ---------- 全局索引：caseId / 命名空间+preset 别名 → 数据（通用取数入口） ---------- */
 
 /**
- * 加载一种用例数据。relativePath 可以是单个 YAML 文件，也可以是目录：
- * 数据量大时把文件原地升级为同名目录，内部任意拆成多个同构分片
- * （按功能面/产品线分文件），加载时合并 presets/cases 两个命名空间——
- * 访问函数只改这里的一个路径常量，调用方零改动。
- *
- * 跨文件重名（YAML 解析器只能挡住单文件内的 duplicate key）在合并时
- * 检测并指明两个来源文件。注意：锚点（&x / *x）不跨文件——继承链
- * 必须写在同一个分片里，这也是 presets 通常独占一个分片的原因。
+ * 首次取数时懒加载 test-data/ 下**全部** YAML，建索引（每 worker 进程一次，
+ * 进程内缓存）。顶层键只允许两种形态，其余键报错（拦截 typo，避免数据静默失踪）：
+ *   - cases：caseId 跨全部文件全局唯一——模块前缀即命名空间（TRADE-001 /
+ *     PRODUCT-001，各模块只在自己的文件里编号），结构上不会撞号；命名模式建索引
+ *     时校验（将来接入 ADO 换成纯数字 work item ID 时，只需改这一处模式）
+ *   - <kind>_preset：别名在该命名空间内跨文件唯一即可，跨命名空间随意重名
+ * 重复键建索引时报错并指明两个来源文件；文件内重复由 YAML 解析器直接拒绝。
  */
-export function loadCaseDoc<T>(relativePath: string): Required<CaseDoc<T>> {
-  let doc = docCache.get(relativePath) as Required<CaseDoc<T>> | undefined;
-  if (doc !== undefined) return doc;
+const TEST_DATA_ROOT = 'test-data';
+const CASE_ID_PATTERN = /^[A-Z][A-Z0-9_]*-\d+$/;
+const PRESET_NAMESPACE_PATTERN = /^[a-z][a-z0-9_]*_preset$/;
 
-  const absolute = path.resolve(__dirname, '../../', relativePath);
-  const files = fs.statSync(absolute).isDirectory()
-    ? fs
-        .readdirSync(absolute)
-        .filter((name) => /\.ya?ml$/.test(name))
-        .sort()
-        .map((name) => path.join(relativePath, name))
-    : [relativePath];
-  if (files.length === 0) {
-    throw new Error(`No YAML files found in ${relativePath}`);
-  }
+interface IndexedEntry {
+  data: unknown;
+  source: string;
+}
 
-  doc = { presets: {}, cases: {} };
-  const origin = new Map<string, string>();
-  for (const file of files) {
-    const part = loadYaml<CaseDoc<T>>(file);
-    for (const namespace of ['presets', 'cases'] as const) {
-      for (const [key, value] of Object.entries(part[namespace] ?? {})) {
-        const existing = origin.get(`${namespace}:${key}`);
-        if (existing !== undefined) {
+interface DataIndex {
+  cases: Map<string, IndexedEntry>;
+  /** 命名空间（YAML 顶层键，如 trade_preset）→ 别名 → 数据 */
+  presets: Map<string, Map<string, IndexedEntry>>;
+}
+
+let dataIndex: DataIndex | undefined;
+
+function yamlFilesUnder(dir: string): string[] {
+  return fs
+    .readdirSync(dir, { withFileTypes: true })
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .flatMap((entry) => {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) return yamlFilesUnder(full);
+      return /\.ya?ml$/.test(entry.name) ? [full] : [];
+    });
+}
+
+function buildDataIndex(): DataIndex {
+  const root = path.resolve(__dirname, '../../');
+  const index: DataIndex = { cases: new Map(), presets: new Map() };
+  for (const file of yamlFilesUnder(path.join(root, TEST_DATA_ROOT))) {
+    const relative = path.relative(root, file);
+    const doc = loadYaml<CaseDoc<unknown> | null>(relative);
+    for (const [namespace, entries] of Object.entries(doc ?? {})) {
+      if (entries == null) continue;
+      let target: Map<string, IndexedEntry>;
+      if (namespace === 'cases') {
+        target = index.cases;
+      } else if (PRESET_NAMESPACE_PATTERN.test(namespace)) {
+        target = index.presets.get(namespace) ?? new Map();
+        index.presets.set(namespace, target);
+      } else {
+        throw new Error(
+          `Unknown top-level key '${namespace}' in ${relative} — expected 'cases' or '<kind>_preset' (e.g. trade_preset)`,
+        );
+      }
+      for (const [key, data] of Object.entries(entries)) {
+        if (namespace === 'cases' && !CASE_ID_PATTERN.test(key)) {
           throw new Error(
-            `Duplicate ${namespace} key '${key}' in ${file} — already defined in ${existing}`,
+            `Invalid case id '${key}' in ${relative} — expected <MODULE>-<number> (pattern ${CASE_ID_PATTERN}, e.g. TRADE-001)`,
           );
         }
-        origin.set(`${namespace}:${key}`, file);
-        doc[namespace][key] = value;
+        const existing = target.get(key);
+        if (existing) {
+          throw new Error(
+            `Duplicate ${namespace} key '${key}' in ${relative} — already defined in ${existing.source}`,
+          );
+        }
+        target.set(key, { data, source: relative });
       }
     }
   }
-  docCache.set(relativePath, doc);
-  return doc;
+  return index;
 }
 
 /**
- * 校验模块数据文件的所有 caseId 符合该模块的命名模式。
- * 自管编号的跨模块唯一性由结构保证：模块前缀即命名空间（TRADE-001 / PRODUCT-001），
- * 每个模块只在自己的文件里编号；文件内重复由 YAML 解析器拒绝（duplicate key 报错）。
+ * 按 caseId 取用例数据（深拷贝）。通用入口本身无类型——
+ * 类型由调用方（通常是领域 fixture，如 getCase<CreateTradeCase>）一次性泛型收口。
  */
-export function assertCaseIdPattern(
-  cases: Record<string, unknown>,
-  pattern: RegExp,
-  source: string,
-): void {
-  const invalid = Object.keys(cases).filter((id) => !pattern.test(id));
-  if (invalid.length > 0) {
+export function getCase<T>(caseId: string): T {
+  dataIndex ??= buildDataIndex();
+  const entry = dataIndex.cases.get(caseId);
+  if (!entry) {
     throw new Error(
-      `Invalid case id(s) in ${source}: ${invalid.join(', ')} — expected pattern ${pattern}`,
+      `Unknown case '${caseId}' under ${TEST_DATA_ROOT}/. Available: ${[...dataIndex.cases.keys()].join(', ')}`,
     );
   }
+  return structuredClone(entry.data) as T;
 }
 
-/** 从 caseId → 数据 映射中取用例（深拷贝）；不存在时列出全部可用 caseId */
-export function pickCase<T>(cases: Record<string, T>, caseId: string, source: string): T {
-  const data = cases[caseId];
-  if (data === undefined) {
+/**
+ * 按 命名空间（YAML 顶层键）+ 业务别名 取 preset 模板（深拷贝）：
+ * 前置造数、与被测行为无关的数据。命名空间是数据（关键字传入），
+ * 不是函数——新增数据种类零新函数；类型同样在调用点泛型收口。
+ */
+export function getPreset<T>(namespace: string, presetName: string): T {
+  dataIndex ??= buildDataIndex();
+  const aliases = dataIndex.presets.get(namespace);
+  if (!aliases) {
     throw new Error(
-      `Unknown case '${caseId}' in ${source}. Available: ${Object.keys(cases).join(', ')}`,
+      `Unknown preset namespace '${namespace}' under ${TEST_DATA_ROOT}/. Available: ${[...dataIndex.presets.keys()].join(', ')}`,
     );
   }
-  return structuredClone(data);
+  const entry = aliases.get(presetName);
+  if (!entry) {
+    throw new Error(
+      `Unknown preset '${presetName}' in ${namespace}. Available: ${[...aliases.keys()].join(', ')}`,
+    );
+  }
+  return structuredClone(entry.data) as T;
 }
 
 /**

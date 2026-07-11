@@ -90,11 +90,12 @@ test 实例导入**（取所属业务域的实例）——领域之间不要互�
 ### 新增一个场景
 
 1. 在 `tests/` 对应 spec 文件里加一个 `test()`，标题按 `<caseId> - <业务描述>` 约定
-2. 步骤用 `test.step('业务语言标题', ...)` 包裹，一步一次 flow/page 调用：
+2. 步骤用 `test.step('业务语言标题', ...)` 包裹，一步一次 flow/page 调用；措辞
+   遵循 [docs/gherkin-style.md](docs/gherkin-style.md) 的六条规则与词汇表：
 
 ```ts
 test('PROFILE-001 - Update profile nickname', async ({ profilePage }) => {
-  await test.step('When I save my profile', async () => {
+  await test.step('When the user saves their profile', async () => {
     await profilePage.save();
   });
 });
@@ -260,38 +261,48 @@ plain Playwright 没有独立的 Before/After hook 层——横切逻辑收进 f
 机器生成/消费的数据才用 JSON。建仓的完整示例（`tests/create-trade.spec.ts`）：
 
 ```ts
-test('TRADE-004 - Create an FX FBS trade with a full step-in', async ({ tradeFlow, tradeCase, ctx }) => {
-  await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase, ctx }, 'FX_FBS');
+test('TRADE-004 - Create an FX FBS trade with a full step-in', async ({ tradeFlow, tradeCase }) => {
+  await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase }, 'FX_FBS', 'full step-in');
 });
 ```
 
 机制与约定：
 
-- **fixture 解析标题**：`tradeCase` fixture 用 `caseIdFromTitle(testInfo.title)`
-  截取 caseId（正则约定 `<caseId> - `，格式不符时报可诊断错误）并加载数据，
-  创建步骤和验证步骤都可解构它——验证点需要的期望值与输入同源
+- **fixture 解析标题 + 通用取数**：`tradeCase` fixture 用 `caseIdFromTitle(testInfo.title)`
+  截取 caseId（正则约定 `<caseId> - `，格式不符时报可诊断错误），再经**全局 case
+  索引**取数——`getCase(caseId)` 首次调用时懒加载 `test-data/` 下全部 YAML 的
+  cases 建索引（每 worker 一次），取数只凭 caseId，**不需要指明数据种类或所在
+  文件**；`CreateTradeCase` 类型在 fixture 处一次性泛型收口。创建步骤和验证步骤
+  都可解构它——验证点需要的期望值与输入同源
 - **分模块 + 分数据种类 + 分片**：模块一个目录（`test-data/trades/`、`test-data/products/…`），
-  目录内**每种前置/动作一个数据文件**——形状不同的数据不共用命名空间
-  （`create-trade-cases.yaml`、`cancellation-details.yaml`…），文件内 presets 与
+  目录内**每种前置/动作一个数据文件**——形状不同的数据不共用文件
+  （`create-trade-cases.yaml`、`cancellation-details.yaml`…），文件内 preset 与
   cases 放在一起（同一种数据的两个视角）。单文件起步；用例攒多后把文件原地升级为
   同名目录、**按功能面**拆成任意多个同构分片（`core.yaml`、`stepin.yaml`…，每片
-  仍是 presets+cases 同文件），`loadCaseDoc` 自动合并两命名空间并检测跨文件重复
-  caseId（指明两个来源文件）；访问函数签名不变，tests/fixtures 零改动。
-  锚点继承不跨文件——继承链写在同一分片内。类型区分在访问器层：
-  `getTradePreset() → CreateTradeCase`、`getCancellationPreset() → CancellationPreset`，
-  拿错数据种类是编译错误；通用加载在 `src/utils/case-data.ts`
-- **并行安全**：YAML 是只读输入，`getCase` 返回**深拷贝**——步骤改了数据只影响
-  本场景副本，不会经 worker 内共享缓存污染后续场景；运行时产物（tradeId）走
-  场景级 `ctx`；需要"每次运行唯一"的输入时在测试里用 `testInfo.workerIndex`/时间戳派生
-- **fail-fast**：caseId 不存在列出全部可用值；`.dat` 缺失立刻报错，不让上传静默失败
+  仍是 preset+cases 同文件）。全局索引扫描整棵 `test-data/` 目录树并检测跨文件
+  重复键（报错指明两个来源文件）——取数与文件组织**彻底解耦**，移动/拆分/新增
+  文件，tests/fixtures 零改动。锚点继承不跨文件——继承链写在同一分片内。
+  **YAML 顶层键即命名空间**：`cases` 是全局唯一的一个（caseId 靠模块前缀
+  TRADE-001 / PRODUCT-001 天然不撞号）；preset 每种数据自带一个（`trade_preset`、
+  `cancel_preset`…，别名只需命名空间内唯一——两边都可以叫 `standard`）。取数是
+  两个通用函数：`getCase(caseId)` / `getPreset(命名空间, 别名)`，命名空间是关键字
+  参数而非函数——**新增数据种类零新函数**；类型在调用点泛型收口（fixture 的
+  `getCase<CreateTradeCase>`、helper 的 `getPreset<CreateTradeCase>('trade_preset', …)`），
+  数据形状的类型定义住在各模块的 `<module>-cases.ts`（如 `trade-cases.ts`），
+  通用加载在 `src/utils/case-data.ts`
+- **并行安全**：YAML 是只读输入，`getCase`/`getPreset` 返回**深拷贝**——步骤改了
+  数据只影响本场景副本，不会经 worker 内共享缓存污染后续场景；运行时产物（tradeId）
+  走局部变量/闭包；需要"每次运行唯一"的输入时在测试里用 `testInfo.workerIndex`/时间戳派生
+- **fail-fast**：caseId 不存在列出全部可用值；`.dat` 缺失立刻报错，不让上传静默失败；
+  YAML 顶层键 typo（如误写旧的 `presets`）建索引时直接拒绝，不会静默失踪
 - **productType 不进 YAML**：它是固定枚举、直接绑定 `.dat` 路径
   （`test-data/trades/dat/{FX_TRF|FX_CO|FX_FBS}.dat`，代码级映射见 `trade-cases.ts`），
   由测试步骤声明（`creates a "FX_TRF" trade ...`）；YAML 只放会变的业务参数
   （counterparty/portfolio/stepIn），step-in 是可选字段而非独立流程
-- **presets 与 cases 分开**：建仓只是**前置条件**（被测的是审批/取消等后续行为）时，
-  数据不绑 caseId——用 `presets` 里的业务别名模板，前置 step 走 API 造数（不占浏览器）：
+- **preset 与 cases 分开**：建仓只是**前置条件**（被测的是审批/取消等后续行为）时，
+  数据不绑 caseId——用 `trade_preset` 里的业务别名模板，前置 step 走 API 造数（不占浏览器）：
   `givenTradeCreatedViaApi(fixtures, 'FX_TRF')`（standard 模板；step 标题把 preset
-  语义写成自然语言，不把 YAML key 暴露进报告文本）。presets 是小而稳定的枚举集合，
+  语义写成自然语言，不把 YAML key 暴露进报告文本）。preset 是小而稳定的枚举集合，
   不像 cases 会随覆盖率增长
 - 新增用例 = YAML 加一段 + 标题带 caseId 的新测试，代码零改动
 
@@ -309,8 +320,8 @@ const plainTrades = [
   { caseId: 'TRADE-003', productType: 'FX_FBS' },
 ] as const;
 for (const { caseId, productType } of plainTrades) {
-  test(`${caseId} - Create a plain ${productType} trade`, async ({ tradeFlow, tradeCase, ctx }) => {
-    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase, ctx }, productType);
+  test(`${caseId} - Create a plain ${productType} trade`, async ({ tradeFlow, tradeCase }) => {
+    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase }, productType);
   });
 }
 ```

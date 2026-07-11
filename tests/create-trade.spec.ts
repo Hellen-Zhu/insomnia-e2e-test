@@ -16,26 +16,26 @@ type CreateTradeFixtures = {
 /**
  * 全部建仓测试共用的步骤序列：UI 创建 → 状态断言 → 数据回验。
  * 差异全部在 caseId 绑定的数据里（counterparty/portfolio/stepIn），步骤文本不变。
- * step 标题沿用 Gherkin 措辞，HTML 报告/trace 里读到的仍是业务语言；
+ * step 标题遵循 docs/gherkin-style.md 的业务语言规范（BDD 分支同规范源）：
+ * "is pending approval" 是封闭的业务状态短语（New + pending approval + 已入
+ * blotter 三件事一次断言，不拆分——它们创建后总是同时成立）。
  * tradeId 经 test.step 返回值 + 闭包在步骤间流动，验证步骤与创建步骤共用
  * 同一个 tradeCase——断言用的期望值与输入同源。
  */
 async function createTradeFromCaseDataAndVerify(
   { tradeFlow, tradeCase }: CreateTradeFixtures,
   productType: string,
+  subject = 'new',
 ): Promise<void> {
   const tradeId = await test.step(
     `When the maker creates a "${productType}" trade from the case data`,
     () => tradeFlow.createTrade(assertProductType(productType), tradeCase),
   );
-  await test.step(
-    'Then the new trade should appear with status "New" and event status "pending approval"',
-    async () => {
-      const row = await tradeFlow.findTradeRow(tradeId);
-      await row.expectContains(tradeId, 'New', 'pending approval');
-    },
-  );
-  await test.step('And the trade row should match the case data', async () => {
+  await test.step(`Then the ${subject} trade is pending approval`, async () => {
+    const row = await tradeFlow.findTradeRow(tradeId);
+    await row.expectContains(tradeId, 'New', 'pending approval');
+  });
+  await test.step('And the trade row matches the case data', async () => {
     const row = await tradeFlow.findTradeRow(tradeId);
     await row.expectContains(tradeCase.counterparty);
   });
@@ -44,10 +44,10 @@ async function createTradeFromCaseDataAndVerify(
 test.describe('Create trade (data-driven)', { tag: '@trade' }, () => {
   /* Background：maker 登录（LoginFlow 末尾等落地页就绪）→ 直达 trade portal */
   test.beforeEach(async ({ loginFlow, tradePortalPage }) => {
-    await test.step('Given I am logged in as "maker"', async () => {
+    await test.step('Given the "maker" is logged in', async () => {
       await loginFlow.loginAs('maker');
     });
-    await test.step('And I am on the trade portal', async () => {
+    await test.step('And the user is on the trade portal', async () => {
       await tradePortalPage.open();
       await tradePortalPage.expectOpened();
     });
@@ -69,10 +69,10 @@ test.describe('Create trade (data-driven)', { tag: '@trade' }, () => {
 
   /* step-in 是独立于产品类型的流程分支，固定用 FX_FBS 各测一个模式，不进上面的表 */
   test('TRADE-004 - Create an FX FBS trade with a full step-in', async ({ tradeFlow, tradeCase }) => {
-    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase }, 'FX_FBS');
+    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase }, 'FX_FBS', 'full step-in');
   });
 
   test('TRADE-005 - Create an FX FBS trade with a partial step-in', async ({ tradeFlow, tradeCase }) => {
-    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase }, 'FX_FBS');
+    await createTradeFromCaseDataAndVerify({ tradeFlow, tradeCase }, 'FX_FBS', 'partial step-in');
   });
 });

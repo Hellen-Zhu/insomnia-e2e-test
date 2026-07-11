@@ -3,8 +3,8 @@ import { TradeDetailPage } from '../pom/pages/trade-detail/trade-detail.page';
 import { NewTradePage } from '../pom/pages/new-trade/new-trade.page';
 import { TradeFlow } from '../pom/flows/trade.flow';
 import { TradeApi } from '../api/trade.api';
-import { caseIdFromTitle } from '../utils/case-data';
-import { getCreateTradeCase, type CreateTradeCase } from '../utils/trade-cases';
+import { caseIdFromTitle, getCase } from '../utils/case-data';
+import { type CreateTradeCase } from '../utils/trade-cases';
 
 /**
  * 交易域 fixtures：详情 / 新建两个页面 + 生命周期流程。
@@ -26,7 +26,9 @@ export const test = tradePortalTest.extend<TradeFixtures>({
   tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
     use(new TradeFlow(tradePortalPage, newTradePage)),
   tradeApi: async ({ apiContext }, use) => use(new TradeApi(apiContext)),
-  /* 懒加载：只有解构了 tradeCase 的测试才要求标题带 caseId */
+  /* 懒加载：只有解构了 tradeCase 的测试才要求标题带 caseId。
+   * 取数走全局 case 索引（getCase 是无类型的通用入口，不指明数据种类/文件），
+   * CreateTradeCase 类型在这里一次性泛型收口 */
   tradeCase: async ({}, use, testInfo) =>
-    use(getCreateTradeCase(caseIdFromTitle(testInfo.title))),
+    use(getCase<CreateTradeCase>(caseIdFromTitle(testInfo.title))),
 });

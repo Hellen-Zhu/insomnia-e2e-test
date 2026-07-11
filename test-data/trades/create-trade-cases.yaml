@@ -3,8 +3,9 @@
 # 由场景步骤声明，不在此维护。
 #
 # 两个命名空间，按数据角色分开（同一种数据的两个视角，放同一文件）：
-# - presets: 业务别名 → 参数模板。用于「建仓只是前置条件/数据细节与被测行为
-#   无关」的场景（Given a "FX_TRF" trade has been created），与 caseId 无关，可复用
+# - trade_preset: 业务别名 → 参数模板。用于「建仓只是前置条件/数据细节与被测行为
+#   无关」的场景（Given a "FX_TRF" trade has been created），与 caseId 无关，可复用；
+#   顶层键即命名空间（<kind>_preset），别名只需在本命名空间内唯一
 # - cases: caseId → 参数。用于「建仓本身是被测行为」的场景，
 #   经场景标题（"TRADE-001 - ..." 或 "[TRADE-001] ..."）绑定
 #
@@ -14,13 +15,14 @@
 #（映射 create-trade-old-counterparty-combobox）。
 #
 # 用例攒多后：把本文件原地升级为同名目录（create-trade-cases/），按功能面拆分片
-# （core.yaml、stepin.yaml…），每个分片仍是 presets + cases 同文件；loadCaseDoc
-# 自动合并并检测跨文件重复 key。注意锚点不跨文件——继承链留在同一分片内，
-# 但同一文件内可以跨命名空间引用（TRADE-004/005 复用 presets 的 &base）。
+# （core.yaml、stepin.yaml…），每个分片仍是 presets + cases 同文件；全局索引扫描
+# 整棵 test-data/ 目录树并检测跨文件重复 key，文件怎么拆取数代码零改动。
+# 注意锚点不跨文件——继承链留在同一分片内，
+# 但同一文件内可以跨命名空间引用（TRADE-004/005 复用 trade_preset 的 &base）。
 
 # preset 编排：同一形状的变体共用命名空间，公共字段经锚点继承（&base / <<:），
 # 变体只声明自己的差异——改基线对手方一处，三个 preset 同步生效。
-presets:
+trade_preset:
   standard: &base
     counterparty: ACME Bank
     portfolio: FX Derivatives

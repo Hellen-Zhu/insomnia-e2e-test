@@ -1,6 +1,12 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { assertCaseIdPattern, loadCaseDoc, pickCase, type CaseDoc } from './case-data';
+
+/**
+ * trade 模块的数据类型与代码级映射。取数本身走 case-data.ts 的全局索引
+ * （getCase / getPreset，通用入口），本文件只负责两件事：
+ *   1. 数据形状的类型定义（供 fixture/步骤在泛型收口处使用）
+ *   2. productType → .dat 捕获文件的代码级映射（固定枚举，不进 YAML）
+ */
 
 /**
  * 产品类型是固定枚举，与 .dat 捕获文件按路径约定一一绑定
@@ -24,7 +30,8 @@ export interface StepInDetails {
   counterparty: string;
 }
 
-/** 用例的可变业务参数（固定的产品类型不在此列） */
+/** 建仓用例/preset 的可变业务参数（固定的产品类型不在此列）。
+ * 取数：getCase<CreateTradeCase>(caseId) 或 getPreset<CreateTradeCase>('trade_preset', 别名) */
 export interface CreateTradeCase {
   counterparty: string;
   portfolio: string;
@@ -32,52 +39,15 @@ export interface CreateTradeCase {
   stepIn?: StepInDetails;
 }
 
-/** create-trade 数据种类：presets 与 cases 同文件（同一种数据的两个视角）。
- * 量大时原地升级为同名目录、按功能面拆分片（每片仍是 presets+cases 同文件），
- * 本行是唯一改动点。其他模块各建自己的 test-data/<module>/<kind> 与访问函数 */
-const CREATE_TRADE_DATA = 'test-data/trades/create-trade-cases.yaml';
-const DAT_DIR = path.resolve(__dirname, '../../test-data/trades/dat');
-
-/** trade 模块的 caseId 模式：模块前缀即命名空间，跨模块结构上不可能撞号。
- * 将来接入 ADO 后换成 work item ID，机械替换 YAML key 与场景标题即可。 */
-const CASE_ID_PATTERN = /^TRADE-\d{3}$/;
-
-let validated = false;
-
-function doc(): Required<CaseDoc<CreateTradeCase>> {
-  const d = loadCaseDoc<CreateTradeCase>(CREATE_TRADE_DATA);
-  if (!validated) {
-    assertCaseIdPattern(d.cases, CASE_ID_PATTERN, CREATE_TRADE_DATA);
-    validated = true;
-  }
-  return d;
-}
-
-export function getCreateTradeCase(caseId: string): CreateTradeCase {
-  return pickCase(doc().cases, caseId, CREATE_TRADE_DATA);
-}
-
-/** 按业务别名取参数模板（与 caseId 无关）：前置造数、非被测数据的建仓 */
-export function getTradePreset(presetName: string): CreateTradeCase {
-  return pickCase(doc().presets, presetName, `${CREATE_TRADE_DATA} (presets)`);
-}
-
-/* ---------- 取消动作的数据（同模块内的另一种数据：单独文件、单独类型） ---------- */
-
-/** 与 CancelTradeDialog.cancelWith 的入参结构一致（结构化类型，无需 import 页面层） */
+/** 取消动作的数据形状（与 CancelTradeDialog.cancelWith 的入参结构一致）。
+ * 取数：getPreset<CancellationPreset>('cancel_preset', 别名) */
 export interface CancellationPreset {
   effectiveDate: string;
   reason: string;
   comments?: string;
 }
 
-/** 单文件起步；量大时原地升级为目录（去掉 .yaml 后缀、拆分片），本行是唯一改动点 */
-const CANCELLATION_DATA = 'test-data/trades/cancellation-details.yaml';
-
-export function getCancellationPreset(presetName: string): CancellationPreset {
-  const cancellationDoc = loadCaseDoc<CancellationPreset>(CANCELLATION_DATA);
-  return pickCase(cancellationDoc.presets, presetName, `${CANCELLATION_DATA} (presets)`);
-}
+const DAT_DIR = path.resolve(__dirname, '../../test-data/trades/dat');
 
 /** 按产品类型解析 .dat 捕获文件路径；文件缺失时立刻报错而非让上传静默失败 */
 export function datFileFor(productType: ProductType): string {
