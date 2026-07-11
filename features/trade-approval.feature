@@ -15,4 +15,4 @@ Feature: Trade maker-checker approval
   Scenario: TRADE-102 - Checker rejects a pending trade
     Given a "FX_TRF" trade has been created via api
     When the checker rejects the trade
-    Then the trade is rejected
+    Then the trade is rejected and marked as new

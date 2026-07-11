@@ -93,27 +93,24 @@ When('the checker rejects the trade', async ({ context, loginFlow, tradeFlow, ct
 });
 
 /**
- * 审批结果断言：approve 批的是 pending 事件，交易状态取决于事件类型——
- * 建仓获批 → New，取消获批 → Cancelled，修改获批 → Amended。
- * 短语同时锁定两个维度（事件裁决 × 交易状态），受限选择集之外的写法直接
- * undefined step；列值映射只在这里（真机确认后如大小写有出入在此调整）。
+ * 审批/拒绝结果断言：approve 与 reject 都是对 pending 事件的裁决，交易状态
+ * 取决于事件类型——建仓 → New，取消 → Cancelled，修改 → Amended。两个裁决
+ * 共用同一张状态映射表，短语同时锁定两个维度（事件裁决 × 交易状态），受限
+ * 选择集之外的写法直接 undefined step；列值映射只在这里（真机确认后如大小写
+ * 有出入在此调整）。
+ *
+ * 当前只有 TRADE-102（建仓被拒）验证过 reject 侧，因此只确认了 new 这一条：
+ * 拒绝后交易仍显示 New（创建本身没有被撤销，只是没能获批）。取消/修改被拒后
+ * 状态是否也是"维持原样"（而非套用 cancelled/amended）待真实应用补齐对应
+ * 场景后再验证——不要在没有测试覆盖前假设三个值在 reject 侧同样成立。
  */
 const STATUS_BY_PHRASE = { new: 'New', cancelled: 'Cancelled', amended: 'Amended' } as const;
 
 Then(
-  /^the trade is approved and marked as (new|cancelled|amended)$/,
-  async ({ tradeFlow, ctx }, status: string) => {
+  /^the trade is (approved|rejected) and marked as (new|cancelled|amended)$/,
+  async ({ tradeFlow, ctx }, verdict: string, status: string) => {
     const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
-    await row.expectContains(STATUS_BY_PHRASE[status as keyof typeof STATUS_BY_PHRASE], 'Approved');
+    const eventStatus = verdict === 'approved' ? 'Approved' : 'Rejected';
+    await row.expectContains(STATUS_BY_PHRASE[status as keyof typeof STATUS_BY_PHRASE], eventStatus);
   },
 );
-
-/**
- * 拒绝结果暂只断言事件维度（Rejected）：拒绝后交易状态列的行为（建仓被拒后
- * 仍是 New？取消被拒后回到原状态？）待真实应用确认后，再升级为与 approve
- * 对称的二维短语。
- */
-Then('the trade is rejected', async ({ tradeFlow, ctx }) => {
-  const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
-  await row.expectContains('Rejected');
-});
