@@ -1,7 +1,8 @@
 import type { TradeApi } from '../api/trade.api';
 import type { ScenarioContext } from '../fixtures/base.fixtures';
 import { credentialsFor } from '../config/users';
-import { assertProductType, getTradePreset } from '../utils/trade-cases';
+import { assertProductType, type CreateTradeCase } from '../utils/trade-cases';
+import { getPreset } from '../utils/case-data';
 import { Given, When, Then } from '../fixtures/trade.fixtures';
 
 /**
@@ -19,7 +20,7 @@ async function seedTradeWithPreset(
   presetName: string,
 ): Promise<void> {
   const type = assertProductType(productType);
-  const preset = getTradePreset(presetName);
+  const preset = getPreset<CreateTradeCase>('trade_preset', presetName);
   ctx.set('tradeCase', preset);
   ctx.set('tradeId', await tradeApi.createTrade(type, preset, credentialsFor('maker').username));
 }

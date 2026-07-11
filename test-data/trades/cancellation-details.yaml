@@ -1,8 +1,9 @@
 # 取消交易的动作数据（trade 模块）。
-# 每种前置/动作一种数据文件：形状不同的数据不共用命名空间，
-# 访问器按类型区分（getCancellationPreset → CancellationPreset）。
+# 每种前置/动作一种数据文件：形状不同的数据不共用文件。
+# 顶层键即命名空间（<kind>_preset）——取数 getPreset<CancellationPreset>('cancel_preset', '别名')，
+# 别名只需在本命名空间内唯一（trade_preset 里也有 standard，互不冲突）。
 
-presets:
+cancel_preset:
   standard:
     effectiveDate: "2026-07-15"
     reason: BOOKING_ERROR
