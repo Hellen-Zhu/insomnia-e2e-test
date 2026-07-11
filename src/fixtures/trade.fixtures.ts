@@ -34,8 +34,8 @@ type TradeFixtures = {
 export const test = tradePortalTest.extend<TradeFixtures>({
   tradeDetailPage: async ({ page }, use) => use(new TradeDetailPage(page)),
   newTradePage: async ({ page }, use) => use(new NewTradePage(page)),
-  tradeFlow: async ({ tradePortalPage, newTradePage }, use) =>
-    use(new TradeFlow(tradePortalPage, newTradePage)),
+  tradeFlow: async ({ tradePortalPage, newTradePage, tradeDetailPage }, use) =>
+    use(new TradeFlow(tradePortalPage, newTradePage, tradeDetailPage)),
   tradeApi: async ({ apiContext }, use) => use(new TradeApi(apiContext)),
   /* 懒加载：只有解构了 tradeCase 的步骤所在场景才要求标题带 caseId。
    * 取数走全局 case 索引（getCase 是无类型的通用入口，不指明数据种类/文件），

@@ -75,10 +75,10 @@ approve / reject（不用 authorise / decline）· case data（caseId 绑定的�
 | 短语 | 断言的列值 | 场景 |
 |---|---|---|
 | `the trade is pending approval` | New + pending approval + 行已在 blotter | 创建后（主语可加装饰变体 new / full step-in / partial step-in） |
-| `the trade is approved and marked as new` | New + Approved | 建仓获批 |
+| `the trade is approved and marked as new` | New + Approved | 建仓获批（TRADE-101/103，两个入口共用） |
 | `the trade is approved and marked as cancelled` | Cancelled + Approved | 取消获批（尚无场景覆盖） |
 | `the trade is approved and marked as amended` | Amended + Approved | 修改获批（尚无场景覆盖） |
-| `the trade is rejected and marked as new` | New + Rejected | 建仓被拒（TRADE-102，已验证） |
+| `the trade is rejected and marked as new` | New + Rejected | 建仓被拒（TRADE-102/104，两个入口共用） |
 | `the trade is rejected and marked as cancelled` | Cancelled + Rejected | 取消被拒（尚无场景覆盖，**列值未验证——见下方警告**） |
 | `the trade is rejected and marked as amended` | Amended + Rejected | 修改被拒（尚无场景覆盖，**列值未验证——见下方警告**） |
 
@@ -99,6 +99,12 @@ approve/reject 批的都是 **pending 事件**，交易状态取决于事件类�
 |---|---|
 | `via api` | 前置造数走 API（不占浏览器、不依赖登录态），仅用于 Given |
 | `from the case data` | 可变参数经标题 caseId 从 YAML 取，仅用于 When |
+| `from the blotter` | checker 裁决走 blotter 行菜单入口，仅用于 When |
+| `from the trade details page` | checker 裁决走详情页入口（view-details 进入，页内按钮+弹窗），仅用于 When |
+
+入口限定语的规则：两条场景只差入口时，入口就是被测差异，必须在**两条**的
+When 里都写明（不能一条裸写一条带限定语）；入口只进 When，永不进 Then——
+裁决的业务结果与入口无关，状态短语两条链路共用。
 
 ## 新增步骤检查清单
 

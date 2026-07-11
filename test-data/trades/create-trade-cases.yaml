@@ -67,3 +67,7 @@ cases:
     stepIn:
       mode: partial
       counterparty: Initech
+
+  # journey 冒烟（trade-journey.feature）：被测的是 maker→checker 工作流链路，
+  # 数据细节无关紧要，直接别名基线模板
+  TRADE-201: *base

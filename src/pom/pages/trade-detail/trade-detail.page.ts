@@ -14,8 +14,8 @@ import {
  * Trade Detail 页面。
  *
  * 30 条元素清单收敛为：4 个 Section + 2 个 Dialog + 页面级动作按钮。
- * 通常从 blotter 行的 view-details 进入而非直接 open()，
- * path 仅用于 expectOpened() 的 URL 断言（按真实路由调整）。
+ * 通常从 blotter 行的 view-details 进入而非直接 open()——真实路由可能带
+ * tradeId 后缀，就位断言以容器渲染为准（expectOpened 覆写），path 仅供 open()。
  *
  * approve/reject/cancelTrade 均为原子业务动作：弹窗的存在
  * 是页面对象的实现细节，step 层不感知。
@@ -86,6 +86,11 @@ export class TradeDetailPage extends BasePage {
   }
 
   /* ---------- 导航与断言 ---------- */
+
+  /** 就位断言：路由可能带 tradeId 后缀，URL 匹配不可靠，以容器渲染为准 */
+  override async expectOpened(): Promise<void> {
+    await expect(this.container).toBeVisible();
+  }
 
   async goBack(): Promise<void> {
     await this.page.getByTestId('trade-detail-page-back-btn').click();

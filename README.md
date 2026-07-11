@@ -202,8 +202,8 @@ maker 创建 → checker 审批是**先后**发生的，因此不需要两个同
 完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
 
 ```gherkin
-Given a "FX_TRF" trade has been created via api   # 前置：走 API 造数，不占浏览器
-When the checker approves the trade               # 被测行为：从这里才开始用 UI
+Given a "FX_TRF" trade has been created via api        # 前置：走 API 造数，不占浏览器
+When the checker approves the trade from the blotter   # 被测行为：从这里才开始用 UI
 Then the trade is approved and marked as new
 ```
 
@@ -212,11 +212,16 @@ Given('a {string} trade has been created via api', (fixtures, productType: strin
   seedTradeWithPreset(fixtures, productType, 'standard'),  // preset：与 caseId 无关的业务别名模板
 );
 
-When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
-  await context.clearCookies();                // 清掉 maker 会话（前置走 API，从未登录过）
-  await loginFlow.loginAs('checker');          // 以 checker 重新 UI 登录，落地即就绪
-  await tradeFlow.approveTrade(ctx.require('tradeId'));  // ctx 跨角色天然共享
-});
+// 裁决（approves|rejects）与入口（blotter|trade details page）都是封闭选择集
+When(
+  /^the checker (approves|rejects) the trade from the (blotter|trade details page)$/,
+  async ({ context, loginFlow, tradeFlow, ctx }, verdict: string, entry: string) => {
+    await context.clearCookies();              // 清掉 maker 会话（前置走 API，从未登录过）
+    await loginFlow.loginAs('checker');        // 以 checker 重新 UI 登录，落地即就绪
+    const tradeId = ctx.require('tradeId');    // ctx 跨角色天然共享
+    /* ...按 verdict × entry 分派到 tradeFlow 的四个方法，见 trade-approval.steps.ts */
+  },
+);
 ```
 
 要点：

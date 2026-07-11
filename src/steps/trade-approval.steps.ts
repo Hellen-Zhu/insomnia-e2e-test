@@ -79,18 +79,28 @@ Then(
   },
 );
 
-/** 切到 checker 角色（清 cookie 重新登录，落地即在 portal）——ctx 里的 tradeId 继续可用 */
-When('the checker approves the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
-  await context.clearCookies();
-  await loginFlow.loginAs('checker');
-  await tradeFlow.approveTrade(ctx.require('tradeId'));
-});
-
-When('the checker rejects the trade', async ({ context, loginFlow, tradeFlow, ctx }) => {
-  await context.clearCookies();
-  await loginFlow.loginAs('checker');
-  await tradeFlow.rejectTrade(ctx.require('tradeId'));
-});
+/**
+ * checker 裁决（清 cookie 重新登录切角色——ctx 里的 tradeId 继续可用）。
+ * 入口是封闭选择集（机制限定语，见 docs/gherkin-style.md）：
+ *   blotter            = 行菜单 approve/reject + CheckerActionDialog
+ *   trade details page = view-details 进详情页 + 页内按钮 + 页内确认弹窗
+ * 两条 UI 布线完全独立（不同按钮、不同弹窗组件），各自值得覆盖；
+ * 业务结果与入口无关，Then 短语两条链路共用。
+ */
+When(
+  /^the checker (approves|rejects) the trade from the (blotter|trade details page)$/,
+  async ({ context, loginFlow, tradeFlow, ctx }, verdict: string, entry: string) => {
+    await context.clearCookies();
+    await loginFlow.loginAs('checker');
+    const tradeId = ctx.require('tradeId');
+    const fromDetails = entry === 'trade details page';
+    if (verdict === 'approves') {
+      await (fromDetails ? tradeFlow.approveTradeFromDetails(tradeId) : tradeFlow.approveTrade(tradeId));
+    } else {
+      await (fromDetails ? tradeFlow.rejectTradeFromDetails(tradeId) : tradeFlow.rejectTrade(tradeId));
+    }
+  },
+);
 
 /**
  * 审批/拒绝结果断言：approve 与 reject 都是对 pending 事件的裁决，交易状态
