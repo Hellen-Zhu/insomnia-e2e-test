@@ -89,7 +89,8 @@ profilePage: async ({ page }, use) => use(new ProfilePage(page)),
 
 ### 新增一个场景
 
-1. 在 `features/` 写 Gherkin 场景（优先复用已有步骤）
+1. 在 `features/` 写 Gherkin 场景（优先复用已有步骤；措辞遵循
+   [docs/gherkin-style.md](docs/gherkin-style.md) 的六条规则与词汇表）
 2. 缺失的步骤在 `src/steps/` 补充，参数中直接声明所需页面对象：
 
 ```ts
@@ -157,11 +158,11 @@ Given('a registered user {string} exists', async ({ userApi, ctx }, alias: strin
 env 里只放 URL 类配置；真实项目中密码经 CI secrets 注入）。
 应用暂不支持会话注入/缓存，**每次登录都真实走 UI**。两类步骤按用途选：
 
-- `Given I am logged in as "maker"`：业务场景的登录前置（`auth.steps.ts`）。
+- `Given the "maker" is logged in`：业务场景的登录前置（`auth.steps.ts`）。
   走 `LoginFlow`：登录页 → 提交凭证 → **等落地页就绪**（portal URL + blotter
   渲染断言），后续步骤开始时页面已可操作；中途切换角色（maker→checker）
   先清 cookie 再登录
-- `When I login as "maker"` / `Then the trade portal should be visible`：
+- `When the user logs in as "maker"` / `Then the trade portal is visible`：
   细粒度步骤，用于登录功能本身的测试（`login.feature`）
 - 需要未登录状态的场景什么都不声明即可——登录态不隐式预注入
 
@@ -203,7 +204,7 @@ maker 创建 → checker 审批是**先后**发生的，因此不需要两个同
 ```gherkin
 Given a "FX_TRF" trade has been created via api   # 前置：走 API 造数，不占浏览器
 When the checker approves the trade               # 被测行为：从这里才开始用 UI
-Then the trade should show event status "Approved"
+Then the trade is approved and marked as new
 ```
 
 ```ts
@@ -266,7 +267,7 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 ```gherkin
 Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
   When the maker creates a "FX_FBS" trade from the case data
-  And the trade row should match the case data     # 验证点同样消费用例数据
+  And the trade row matches the case data          # 验证点同样消费用例数据
 ```
 
 机制与约定：
@@ -348,7 +349,7 @@ When('the maker creates a new trade:', async ({ tradeFlow, ctx }, table: DataTab
   ctx.set('tradeId', await tradeFlow.createTrade(request));  // 写入本场景上下文
 });
 
-Then('the new trade should appear ...', async ({ tradeFlow, ctx }) => {
+Then('the new trade is pending approval', async ({ tradeFlow, ctx }) => {
   const tradeId = ctx.require('tradeId');  // 断言式读取：未写入时给出可诊断错误
   await (await tradeFlow.findTradeRow(tradeId)).expectContains(tradeId);
 });

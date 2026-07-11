@@ -56,18 +56,26 @@ When(
 );
 
 /** 验证点同样消费用例数据（从 ctx 读，与数据来自 tag 还是 productType 无关） */
-Then('the trade row should match the case data', async ({ tradeFlow, ctx }) => {
+Then('the trade row matches the case data', async ({ tradeFlow, ctx }) => {
   const tradeCase = ctx.require('tradeCase');
   const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
   await row.expectContains(tradeCase.counterparty);
 });
 
+/**
+ * 业务状态断言：与 preset Given 同一设计——状态是小而稳定的枚举，一种业务状态
+ * 一个自然语言短语，具体列值封装在这里，不当参数暴露进 Gherkin。
+ * "pending approval" = 创建后的完整已知状态：行已出现在 blotter（live）+
+ * status "New"（marked as new）+ event status "pending approval"。
+ * 主语变体（new / full step-in / partial step-in）是纯装饰，让场景读起来自然，
+ * 不参与断言逻辑；新增业务状态时在此登记新短语。
+ */
 Then(
-  'the new trade should appear with status {string} and event status {string}',
-  async ({ tradeFlow, ctx }, status: string, eventStatus: string) => {
+  /^the (?:new |full step-in |partial step-in )?trade is pending approval$/,
+  async ({ tradeFlow, ctx }) => {
     const tradeId = ctx.require('tradeId');
     const row = await tradeFlow.findTradeRow(tradeId);
-    await row.expectContains(tradeId, status, eventStatus);
+    await row.expectContains(tradeId, 'New', 'pending approval');
   },
 );
 
@@ -84,10 +92,28 @@ When('the checker rejects the trade', async ({ context, loginFlow, tradeFlow, ct
   await tradeFlow.rejectTrade(ctx.require('tradeId'));
 });
 
+/**
+ * 审批结果断言：approve 批的是 pending 事件，交易状态取决于事件类型——
+ * 建仓获批 → New，取消获批 → Cancelled，修改获批 → Amended。
+ * 短语同时锁定两个维度（事件裁决 × 交易状态），受限选择集之外的写法直接
+ * undefined step；列值映射只在这里（真机确认后如大小写有出入在此调整）。
+ */
+const STATUS_BY_PHRASE = { new: 'New', cancelled: 'Cancelled', amended: 'Amended' } as const;
+
 Then(
-  'the trade should show event status {string}',
-  async ({ tradeFlow, ctx }, eventStatus: string) => {
+  /^the trade is approved and marked as (new|cancelled|amended)$/,
+  async ({ tradeFlow, ctx }, status: string) => {
     const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
-    await row.expectContains(eventStatus);
+    await row.expectContains(STATUS_BY_PHRASE[status as keyof typeof STATUS_BY_PHRASE], 'Approved');
   },
 );
+
+/**
+ * 拒绝结果暂只断言事件维度（Rejected）：拒绝后交易状态列的行为（建仓被拒后
+ * 仍是 New？取消被拒后回到原状态？）待真实应用确认后，再升级为与 approve
+ * 对称的二维短语。
+ */
+Then('the trade is rejected', async ({ tradeFlow, ctx }) => {
+  const row = await tradeFlow.findTradeRow(ctx.require('tradeId'));
+  await row.expectContains('Rejected');
+});

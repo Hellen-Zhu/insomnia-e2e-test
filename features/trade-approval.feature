@@ -10,9 +10,9 @@ Feature: Trade maker-checker approval
   Scenario: TRADE-101 - Checker approves a pending trade
     Given a "FX_TRF" trade has been created via api
     When the checker approves the trade
-    Then the trade should show event status "Approved"
+    Then the trade is approved and marked as new
 
   Scenario: TRADE-102 - Checker rejects a pending trade
     Given a "FX_TRF" trade has been created via api
     When the checker rejects the trade
-    Then the trade should show event status "Rejected"
+    Then the trade is rejected

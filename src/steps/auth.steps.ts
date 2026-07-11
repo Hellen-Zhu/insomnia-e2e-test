@@ -6,7 +6,7 @@ import { Given } from '../fixtures/trade-portal.fixtures';
  * 中途切换角色（maker→checker）时先清 cookie 再登录，避免旧会话干扰。
  * 登录 UI 本身的测试见 login.steps.ts 的细粒度步骤。
  */
-Given('I am logged in as {string}', async ({ context, loginFlow }, role: string) => {
+Given('the {string} is logged in', async ({ context, loginFlow }, role: string) => {
   await context.clearCookies();
   await loginFlow.loginAs(role);
 });

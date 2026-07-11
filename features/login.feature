@@ -5,16 +5,16 @@ Feature: User Login
   So that I can access my workspace
 
   Background:
-    Given I am on the login page
+    Given the user is on the login page
 
   @smoke
   Scenario: Login successfully with a valid role
-    When I login as "maker"
-    Then the trade portal should be visible
+    When the user logs in as "maker"
+    Then the trade portal is visible
 
   Scenario Outline: Login fails with invalid credentials
-    When I login with username "<username>" and password "<password>"
-    Then I should see the error message "<error_message>"
+    When the user logs in with username "<username>" and password "<password>"
+    Then the error message "<error_message>" is shown
 
     Examples:
       | username        | password       | error_message                         |

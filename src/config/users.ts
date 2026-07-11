@@ -1,5 +1,5 @@
 /**
- * 角色 → 登录凭证映射。场景里只出现角色名（Given I am logged in as "maker"），
+ * 角色 → 登录凭证映射。场景里只出现角色名（Given the "maker" is logged in），
  * 凭证细节收口在这里。
  *
  * saucedemo 是公开演示站点，凭证公开、可入库。真实项目中：

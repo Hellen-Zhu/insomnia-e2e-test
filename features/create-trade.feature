@@ -11,16 +11,16 @@ Feature: Create trade (data-driven)
   data as the creation steps.
 
   Background:
-    Given I am logged in as "maker"
-    And I am on the trade portal
+    Given the "maker" is logged in
+    And the user is on the trade portal
 
   # productType 由 Examples 列驱动；每行的 counterparty/portfolio 各自来自
   # 该行 caseId 对应的 case 数据，可以相同也可以不同——Outline 只要求 caseId
   # 逐行不同，保证标题可追溯、报告不去重，不要求其余字段也保持一致
   Scenario Outline: <caseId> - Create a plain <productType> trade
     When the maker creates a "<productType>" trade from the case data
-    Then the new trade should appear with status "New" and event status "pending approval"
-    And the trade row should match the case data
+    Then the new trade is pending approval
+    And the trade row matches the case data
 
     Examples:
       | caseId    | productType |
@@ -31,10 +31,10 @@ Feature: Create trade (data-driven)
   # step-in 是独立于产品类型的流程分支，固定用 FX_FBS 各测一个模式，不进 Outline
   Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
     When the maker creates a "FX_FBS" trade from the case data
-    Then the new trade should appear with status "New" and event status "pending approval"
-    And the trade row should match the case data
+    Then the full step-in trade is pending approval
+    And the trade row matches the case data
 
   Scenario: TRADE-005 - Create an FX FBS trade with a partial step-in
     When the maker creates a "FX_FBS" trade from the case data
-    Then the new trade should appear with status "New" and event status "pending approval"
-    And the trade row should match the case data
+    Then the partial step-in trade is pending approval
+    And the trade row matches the case data
