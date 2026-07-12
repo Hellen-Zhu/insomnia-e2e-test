@@ -1,33 +1,35 @@
 import { expect, type Locator } from '@playwright/test';
-import { BaseComponent } from '../components/base.component';
-import { TextInput } from '../components/form-field';
+import { BaseComponent } from './base.component';
+import { TextInput } from './form-field';
 
 export type MarketerRole = 'coverage' | 'execution';
 
 /**
- * 动态操作弹窗（dynamic-action-dialog）：blotter 行操作（部分终止 / 提前终止 /
- * novation / 组合调仓 / allocation 等）共用同一个弹窗，字段随操作类型动态渲染。
+ * 动态操作弹窗（dynamic-action-dialog）：前端用同一个组件承载多种行操作
+ * （部分终止 / 提前终止 / novation / 组合调仓 / allocation 等），
+ * 字段随操作类型动态渲染。本类只登记该组件的 testid 语法与固定骨架，
+ * **零业务知识**——field 名是运行时数据，随场景传入；
+ * 各操作类型的常用字段组合收敛到 test-data。
+ * 动作特有的补充元素（如 partial novation 的名义金额区）由页面侧子类扩展。
  *
- * 字段 testid 全部遵循参数化模式，因此不按操作类型登记字段：
- *   文本:  dynamic-action-{field}-input        （newNotional / amount / ar-ci ...）
- *   日期:  dynamic-action-{field}-date-input   （terminationDate / settleDate ...）
- *   下拉:  dynamic-action-{field}-select       （portfolio / direction ...）
- * field 名是业务数据，随场景传入；各操作类型的常用字段组合收敛到 test-data。
  * 注意 field 命名本身不统一（newNotional 驼峰 vs ar-ci kebab），建议反馈前端。
  */
-export class DynamicActionDialog extends BaseComponent {
+export class DynamicActionModal extends BaseComponent {
+  /** testid 语法契约（与前端 dynamic-action 组件一一对应，前端改名只改这里） */
+  protected static readonly TID = {
+    input: (field: string) => `dynamic-action-${field}-input`,
+    dateInput: (field: string) => `dynamic-action-${field}-date-input`,
+    select: (field: string) => `dynamic-action-${field}-select`,
+    /* marketer 成对出现：select 选人 + pct-input 分成 */
+    marketer: (role: MarketerRole) => `dynamic-action-${role}-marketer-select`,
+    marketerPct: (role: MarketerRole) => `dynamic-action-${role}-marketer-pct-input`,
+  };
+
   private readonly loading = this.host.getByTestId('dynamic-action-loading-state');
   private readonly userInputs = this.host.getByTestId('dynamic-action-user-inputs-container');
   private readonly confirmBtn = this.host.getByTestId('dynamic-action-confirm-btn');
   private readonly skipRiskBtn = this.host.getByTestId('dynamic-action-skip-risk-btn');
   private readonly cancelBtn = this.host.getByTestId('dynamic-action-cancel-btn');
-  /* 名义金额区两个 testid 缺 dynamic-action 前缀，建议反馈前端 */
-  private readonly notionalEquation = this.host.getByTestId(
-    'partial-novation-notional-equation-value',
-  );
-  private readonly notionalSummary = this.host.getByTestId(
-    'partial-novation-notional-summary-container',
-  );
 
   /** 打开后先等动态字段渲染完成（loading 消失、输入区就位）再操作 */
   async waitUntilReady(): Promise<void> {
@@ -37,16 +39,16 @@ export class DynamicActionDialog extends BaseComponent {
   }
 
   input(field: string): TextInput {
-    return new TextInput(this.host.getByTestId(`dynamic-action-${field}-input`));
+    return new TextInput(this.host.getByTestId(DynamicActionModal.TID.input(field)));
   }
 
   dateInput(field: string): TextInput {
-    return new TextInput(this.host.getByTestId(`dynamic-action-${field}-date-input`));
+    return new TextInput(this.host.getByTestId(DynamicActionModal.TID.dateInput(field)));
   }
 
   /* -select 按原生 <select> 处理；若为自定义组件改用 components/Combobox */
   private select(field: string): Locator {
-    return this.host.getByTestId(`dynamic-action-${field}-select`);
+    return this.host.getByTestId(DynamicActionModal.TID.select(field));
   }
 
   async setField(field: string, value: string): Promise<void> {
@@ -61,13 +63,12 @@ export class DynamicActionDialog extends BaseComponent {
     await this.select(field).selectOption(value);
   }
 
-  /* marketer 成对出现：dynamic-action-{role}-marketer-select + -marketer-pct-input */
-  private marketerSelect(role: MarketerRole) {
-    return this.host.getByTestId(`dynamic-action-${role}-marketer-select`);
+  private marketerSelect(role: MarketerRole): Locator {
+    return this.host.getByTestId(DynamicActionModal.TID.marketer(role));
   }
 
   private marketerPctInput(role: MarketerRole): TextInput {
-    return new TextInput(this.host.getByTestId(`dynamic-action-${role}-marketer-pct-input`));
+    return new TextInput(this.host.getByTestId(DynamicActionModal.TID.marketerPct(role)));
   }
 
   async selectMarketer(role: MarketerRole, name: string): Promise<void> {
@@ -78,16 +79,7 @@ export class DynamicActionDialog extends BaseComponent {
     await this.marketerPctInput(role).fill(pct);
   }
 
-  /** 部分 novation 的名义金额等式 */
-  async expectNotionalEquation(text: string): Promise<void> {
-    await expect(this.notionalEquation).toContainText(text);
-  }
-
-  async expectNotionalSummaryVisible(): Promise<void> {
-    await expect(this.notionalSummary).toBeVisible();
-  }
-
-  /** 确认后通常接 TradeChangeConfirmationDialog，由 flow 编排后续 */
+  /** 确认后通常接后续确认弹窗（如 TradeChangeConfirmationDialog），由 flow 编排 */
   async confirm(): Promise<void> {
     await this.confirmBtn.click();
   }

@@ -92,6 +92,10 @@ export class ProfilePage extends BasePage {
   具名私有工厂方法就是它的"定义"，紧挨字段声明区放置
 - **工厂 + 字面量调用**（`btn('save')` 这类参数集合固定的）：每个字面量提升
   为一个字段，工厂只在字段初始化处使用
+- **参数化规则成套时（约 ≥3 条语法）**：把 testid 模板收成类头部的 `TID`
+  常量块（模板函数表），工厂方法只引用——组件对前端 DOM 的全部知识可一眼
+  盘点，前端改名只改一处（示例：`pages/components/dynamic-action-modal.ts`）；
+  单条语法的组件不必开块，工厂方法内联模板即可
 - ⚠️ target ES2022 下**字段初始化器先于构造器体执行**：依赖本类构造参数
   （如 `viewId`）的定位器必须在构造器体内赋值；引用**父类**参数属性
   （`this.page` / `this.host`）的初始化器是安全的（super() 期间已赋值）
@@ -140,7 +144,7 @@ export class ProfilePage extends BasePage {
 }
 ```
 
-已提供的组件：`TextInput`、`TextArea`（fill/clear/expectValue/expectEnabled/expectDisabled）、`Combobox`（select/expectSelected：点击触发器开面板 → 点选值，适配无 ARIA 的自定义下拉）。
+已提供的组件：`TextInput`、`TextArea`（fill/clear/expectValue/expectEnabled/expectDisabled）、`Combobox`（select/expectSelected：点击触发器开面板 → 点选值，适配无 ARIA 的自定义下拉）、`DynamicActionModal`（前端动态操作弹窗的通用骨架：`TID` 语法块 + 就绪等待 + 确认/跳过风控/取消；动作特有元素由页面侧子类扩展，见 `pages/trade-portal/partial-novation.dialog.ts`）。
 
 约定：
 

@@ -5,7 +5,8 @@ import { BottomNavSection } from './bottom-nav.section';
 import { TransactionFilterSection } from './transaction-filter.section';
 import { BlotterView } from './blotter-view.component';
 import { CheckerActionDialog } from './checker-action.dialog';
-import { DynamicActionDialog } from './dynamic-action.dialog';
+import { DynamicActionModal } from '../components/dynamic-action-modal';
+import { PartialNovationDialog } from './partial-novation.dialog';
 import { TradeChangeConfirmationDialog } from './trade-change-confirmation.dialog';
 
 /**
@@ -38,8 +39,13 @@ export class TradePortalPage extends BasePage {
     this.page.getByTestId('checker-action-dialog'),
   );
 
-  /** 行操作（终止/novation/调仓等）共用的动态表单弹窗 */
-  readonly dynamicActionDialog = new DynamicActionDialog(
+  /** 行操作（终止/novation/调仓等）共用的动态表单弹窗（组件层通用骨架） */
+  readonly dynamicActionDialog = new DynamicActionModal(
+    this.page.getByTestId('dynamic-action-dialog'),
+  );
+
+  /** 同一弹窗的 partial novation 视角：多出名义金额区的断言 */
+  readonly partialNovationDialog = new PartialNovationDialog(
     this.page.getByTestId('dynamic-action-dialog'),
   );
 
