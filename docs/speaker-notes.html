@@ -1,0 +1,277 @@
+<title>汇报讲稿 · Speaker Notes</title>
+<style>
+  :root {
+    --bg: #f4f7f7;
+    --surface: #ffffff;
+    --ink: #16292e;
+    --muted: #5a6e74;
+    --faint: #8ba0a5;
+    --accent: #0b7285;
+    --accent-ink: #ffffff;
+    --accent-tint: #e3f0f2;
+    --line: #dbe4e5;
+    --line-strong: #b9c9cc;
+    --good: #1a7f4f;
+    --good-tint: #e2f2e9;
+    --warn: #a06514;
+    --warn-tint: #f7edda;
+    --code-bg: #eef3f4;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+      "Noto Sans CJK SC", "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1517; --surface: #131f22; --ink: #e2eced; --muted: #93a9ae;
+      --faint: #6d8288; --accent: #45b8cc; --accent-ink: #06272e; --accent-tint: #12333a;
+      --line: #24363a; --line-strong: #3a5157; --good: #4cc38a; --good-tint: #10301f;
+      --warn: #d9a53f; --warn-tint: #33270e; --code-bg: #0f1a1d;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f7f7; --surface: #ffffff; --ink: #16292e; --muted: #5a6e74;
+    --faint: #8ba0a5; --accent: #0b7285; --accent-ink: #ffffff; --accent-tint: #e3f0f2;
+    --line: #dbe4e5; --line-strong: #b9c9cc; --good: #1a7f4f; --good-tint: #e2f2e9;
+    --warn: #a06514; --warn-tint: #f7edda; --code-bg: #eef3f4;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1517; --surface: #131f22; --ink: #e2eced; --muted: #93a9ae;
+    --faint: #6d8288; --accent: #45b8cc; --accent-ink: #06272e; --accent-tint: #12333a;
+    --line: #24363a; --line-strong: #3a5157; --good: #4cc38a; --good-tint: #10301f;
+    --warn: #d9a53f; --warn-tint: #33270e; --code-bg: #0f1a1d;
+  }
+
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.8; }
+  .page { max-width: 780px; margin: 0 auto; padding: 44px 24px 96px; }
+  code { font-family: var(--mono); font-size: 0.87em; background: var(--code-bg); border-radius: 4px; padding: 1px 5px; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .masthead { padding-bottom: 22px; border-bottom: 2px solid var(--ink); margin-bottom: 36px; }
+  .kicker { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 12px; }
+  h1 { font-size: 26px; line-height: 1.4; margin: 0 0 8px; text-wrap: balance; }
+  .sub { color: var(--muted); margin: 0; }
+
+  section { margin-top: 48px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--accent); font-weight: 700; margin-bottom: 6px; }
+  h2 { font-size: 20px; margin: 0 0 12px; }
+  h3 { font-size: 15.5px; margin: 24px 0 8px; }
+  p { margin: 10px 0; max-width: 46em; }
+  ul { padding-left: 1.4em; }
+  li { margin: 6px 0; }
+  li::marker { color: var(--accent); }
+
+  /* speakable script blocks */
+  .script {
+    background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 6px; padding: 18px 22px; margin: 14px 0; font-size: 15.5px; line-height: 1.9;
+  }
+  .script .s-tag { font-size: 11.5px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint); font-weight: 700; display: block; margin-bottom: 6px; }
+
+  /* strategy note */
+  .strategy {
+    font-size: 13px; color: var(--muted); background: var(--code-bg);
+    border-radius: 6px; padding: 10px 14px; margin: 10px 0 0;
+  }
+  .strategy b { color: var(--ink); }
+  .strategy::before { content: "策略"; color: var(--warn); font-weight: 700; margin-right: 8px; font-size: 11.5px; letter-spacing: 0.1em; }
+
+  /* flow table */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin: 16px 0; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { padding: 9px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  thead th { font-size: 12px; color: var(--muted); background: var(--code-bg); font-weight: 700; white-space: nowrap; }
+  td.t { font-family: var(--mono); font-size: 12.5px; color: var(--faint); white-space: nowrap; }
+  td.k { font-weight: 700; white-space: nowrap; }
+
+  /* Q&A cards */
+  .qa { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 18px 22px; margin: 14px 0; }
+  .qa .q { font-weight: 700; font-size: 15.5px; margin-bottom: 4px; }
+  .qa .q .prob { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; border-radius: 4px; padding: 1px 8px; margin-left: 10px; vertical-align: 2px; white-space: nowrap; }
+  .prob.high { background: var(--warn-tint); color: var(--warn); }
+  .prob.mid { background: var(--accent-tint); color: var(--accent); }
+  .qa .a { margin: 8px 0 0; line-height: 1.9; }
+  .qa .a::before { content: "答"; display: inline-block; font-size: 11.5px; font-weight: 700; color: var(--good); background: var(--good-tint); border-radius: 4px; padding: 1px 8px; margin-right: 10px; vertical-align: 1px; }
+
+  /* checklist */
+  .check { list-style: none; padding: 0; }
+  .check li { padding: 10px 14px 10px 40px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; margin: 8px 0; position: relative; }
+  .check li::before { content: "☐"; position: absolute; left: 14px; color: var(--accent); font-size: 16px; }
+
+  .footnote { font-size: 12.5px; color: var(--faint); border-top: 1px solid var(--line); margin-top: 52px; padding-top: 14px; }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <div class="kicker">仅自用 · 不随文档分发</div>
+  <h1>E2E 选型汇报 · 讲稿与应答预案</h1>
+  <p class="sub">配合《E2E 自动化框架选型汇报》使用。汇报总长 12–15 分钟 + 提问。</p>
+</header>
+
+<!-- ============ 开场白 ============ -->
+<section>
+  <div class="eyebrow">一 · 开场白</div>
+  <h2>两个版本，按老大风格选</h2>
+
+  <div class="script">
+    <span class="s-tag">标准版 · 约 60 秒</span>
+    "占用大家十五分钟，汇报 trade portal E2E 自动化的选型。先说结论：我建议用 TypeScript 加 Playwright Test，BDD 作为可选的薄层。这个结论有三个支撑——<b>第一</b>，框架不是方案设想，已经落地 14 条用例、两千四百多行代码，并且全部在本地实跑通过；<b>第二</b>，我拿它和内部的 genie-playwright、Python 方案做了逐项对比，最关键的差异有两个：genie 的封装不支持自动等待，稳定性要靠手写等待去堆；并行只能 fork JVM，开销随并行度线性涨——这两条都有实测数据；<b>第三</b>，选型里最大的风险点——BDD 那一层是个人维护的开源项目——我没有回避，是用架构手段对冲掉的，后面有专门一节。下面按这个顺序展开。"
+  </div>
+
+  <div class="script">
+    <span class="s-tag">极简版 · 20 秒</span>
+    "结论：trade portal E2E 用 TS + Playwright Test，14 条用例已经本地全部跑通。今天讲三件事——它能做什么、为什么不是 genie 或 Python、playwright-bdd 个人维护的风险怎么兜底。"
+  </div>
+
+  <div class="strategy"><b>先把风险自己说出来。</b>"playwright-bdd 是个人维护的"由你先讲，性质是"我做过风险管理"；等老大先问出来，性质就变成"你没想到"。</div>
+</section>
+
+<!-- ============ 流程 ============ -->
+<section>
+  <div class="eyebrow">二 · 介绍顺序</div>
+  <h2>每节只讲透一句话</h2>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>节</th><th>时长</th><th>主旨句（照读级别）</th></tr></thead>
+      <tbody>
+        <tr><td class="k">结论先行</td><td class="t">1 min</td><td>"推荐 TS，风险已对冲——细节在后面，您可以随时打断。"</td></tr>
+        <tr><td class="k">框架能力</td><td class="t">3 min</td><td>"这不是 PPT 框架，是本地跑通的两千四百行代码。"</td></tr>
+        <tr><td class="k">三方案对比</td><td class="t">3 min</td><td>"genie 的优势在集成面，可以桥接；差距在引擎面——自动等待和并行模型——无法桥接。"</td></tr>
+        <tr><td class="k">实测对比</td><td class="t">2 min</td><td>"上一页是能力表，这一页是同一条用例的实测数字。"</td></tr>
+        <tr><td class="k">风险专题</td><td class="t">3 min</td><td>"耦合面只有 21%，退出路径不是估算的，是做过一遍量出来的。"</td></tr>
+        <tr><td class="k">下一步</td><td class="t">1 min</td><td>"今天请您确认的只有第一条：选型本身。"</td></tr>
+        <tr><td class="k">提问</td><td class="t">3+ min</td><td>——</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>各节展示动作</h3>
+  <ul>
+    <li><b>框架能力</b>：四个数字条读一遍；架构图手指右侧括号——"注意这个 79/21，是风险节的伏笔"（埋钩子）；Gherkin 示例读一遍那三行英文——"报告直接长这样，BA 不看代码能复述这条用例在验证什么"。八张能力卡只点一两张，其余"细节文档里有"。</li>
+    <li><b>对比表</b>：不逐行读。先讲主轴（Playwright Test runner 只在 Node 侧），<b>先指 genie 列的绿色格子</b>："这两格是 genie 真实的优势，我标的绿"——先替对方说出它的好，你的结论才有公信力。再停在"等待机制"那行红格上，一句话："这行是引擎级差距，下一节有实测数字。"收在"Java 项目 genie 仍是合理默认"。</li>
+    <li><b>实测对比</b>：四组图各一句话，重心放对比 1（并行折线张口）和对比 2（显式等待 N 处 vs 0 处）。对比 4 若时间允许<b>现场演示 trace viewer</b>——打开的瞬间效果好于任何静态图。</li>
+    <li><b>风险专题</b>：节奏放慢。顺序：事实（构建期代码生成器，运行时不存在）→ 条形图 → 三层阶梯 → 迁移成本表。最硬的一句留在最后："迁移成本不是我估算的——我们真的维护着一个不用 BDD 的镜像分支，同样的用例原生写法实现了一遍。"</li>
+  </ul>
+</section>
+
+<!-- ============ 分节讲稿 ============ -->
+<section>
+  <div class="eyebrow">三 · 分节讲稿（照读版）</div>
+  <h2>每节一段，可直接读</h2>
+
+  <div class="script">
+    <span class="s-tag">02 框架能力 · 约 90 秒</span>
+    "这一节证明一件事：这不是方案设想，是已经落地的框架。四个数字——14 条用例本地全部实跑通过、两千四百多行框架代码、28 个页面模型文件、两个分支并行维护。架构一句话：业务语言到页面细节是单向依赖；右边这个 79 比 21，是后面风险节的伏笔。往下这张能力对照总表是给您省时间的：上半区是对齐区——genie 支持的，BDD 用例组织、数据驱动、并行、重试、多环境切换、API 造数、数据库落地验证、报告、多浏览器——我们逐项都有；而且 genie 侧我是<b>从宽标注</b>的，没逐条核实的都按它有算，即便如此结论也不变。下半区是增量区——自动等待、worker 级并行、UI 调试模式、步骤编译期检查、AI 测试工装链——这些 genie 不具备，我们已经落地。这张表一句话总结：<b>genie 有的都有，genie 没有的也有。</b>"
+  </div>
+
+  <div class="script">
+    <span class="s-tag">03 三方案对比 · 约 90 秒</span>
+    "三个候选放在一起，对比的主轴一句话：Playwright 官方的 Test runner 只存在于 Node 侧——Java 和 Python 拿到的是浏览器驱动，不是完整测试平台。先说 genie 真实的优势，这两格我特意标了绿色：Cucumber-JVM 官方维护、生态最成熟；genie 全家桶的报告和流水线开箱即用。这些是真优势，我不回避。但请看等待机制这一行：genie 的封装不支持自动等待，用例稳定性要靠显式等待一处一处堆——这是引擎级差距，桥不过去，下一节有实测数字。我的结论保持克制：<b>Java 项目 genie 仍是合理默认</b>；但 trade portal 是 TS 前端项目，匹配度在我们这边。"
+  </div>
+
+  <div class="script">
+    <span class="s-tag">04 实测数据 · 约 60 秒</span>
+    "上一页是能力表，这一页是数字，四组对比用的是同一条业务用例。重点看两组：第一组，并行扩展——worker 数从 1 到 2 到 4，两边的耗时曲线【照图读数字】；第二组，显式等待密度——同一条用例 genie 侧写了【N】处显式等待，我们是零处，这就是自动等待在用例层的直接体现。第四组是失败诊断：同一个失败，我们这边拿到的是 trace——可以时间旅行回放的现场【条件允许当场打开】。"
+  </div>
+
+  <div class="script">
+    <span class="s-tag">05 风险专题 · 约 2 分钟（放慢）</span>
+    "这一节回答今天最尖锐的问题：playwright-bdd 是个人维护的开源项目，停更了怎么办。第一，先看事实：它是构建期的代码生成器，生成的是标准 Playwright 测试，<b>运行时它不存在</b>——锁定版本可以稳定使用以年计，不存在'跑着跑着坏了'。第二，看这个条形图：架构上把耦合面压到了 21%，绿色这 79% 的代码根本不知道它存在。第三，退出路径——这句话请允许我强调：<b>迁移成本不是我估算的，是做过一遍量出来的</b>。我们真的维护着一个不用 BDD 的镜像分支，同样的用例、原生写法、完整实现了一遍。真要退出，改的就是那五百行接线层，其余原样保留。"
+  </div>
+
+  <div class="script">
+    <span class="s-tag">06 下一步 · 约 30 秒</span>
+    "下一步五件事，但今天请您确认的只有第一条：选型本身。其余四条——接共享测试环境、CI 分片并行、报告平台对接、核心回归铺开——都是选型确认之后的执行项，不需要今天拍板。"
+  </div>
+</section>
+
+<!-- ============ QA ============ -->
+<section>
+  <div class="eyebrow">四 · Q&amp;A 预案</div>
+  <h2>按被问概率排序</h2>
+
+  <div class="qa">
+    <div class="q">Q1 · 公司有 genie，为什么另起炉灶？<span class="prob high">必问</span></div>
+    <p class="a">"不是对 genie 的否定，是匹配度问题。genie 给我们的是集成面——Cucumber、报告、流水线，这些我可以通过标准报告格式桥接回去，下一步计划里有这条。但两个引擎级差距桥不过去：一是它的封装不支持自动等待，用例稳定性要靠显式等待一处一处堆，那是 flaky 的最大来源；二是并行靠 fork JVM，进程启动和内存开销随并行度线性涨。我们被测系统本身是 TS 前端，同语言意味着前端同事能直接读懂甚至贡献页面模型。Java 项目我仍然建议默认 genie。"</p>
+    <div class="strategy">答案里必须出现<b>"genie 仍是 Java 项目的默认"</b>——姿态是补位不是替代。有实测数据时直接翻到实测对比节。</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q2 · playwright-bdd 停更了怎么办？<span class="prob high">必问</span></div>
+    <p class="a">"三层兜底。第一层，它是构建期的代码生成器，跑起来的就是纯 Playwright 测试，锁定版本可以稳定用以年计；第二层，架构上耦合面压到了 21%，八成的代码不知道它存在；第三层是实证——我们维护着一个不用它的镜像分支，同样的用例原生写法跑通了，真要退出，改的就是五百行接线层。"</p>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q3 · genie 底层不也是 Playwright？你说的差距从哪来？<span class="prob high">大概率</span></div>
+    <p class="a">"底层是同一个浏览器驱动，但封装层丢了 Playwright 最核心的两样东西：自动等待和 web-first 断言。用例层面感受到的稳定性差距全部来自这里——实测对比第 2 组直接数的就是这个：同一条用例，genie 侧要写 N 处显式等待，我们是零。"</p>
+    <div class="strategy">这题是送分题，把话题引向实测对比节。</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q3b · AI agent 那套，给 genie 也配一套不就行了？<span class="prob high">大概率</span></div>
+    <p class="a">"理论上可以，我拆开说。agent 体系分三层：规则和设计那一层是纯文本，Java 项目完全可以用；浏览器探索层面向的是应用不是框架，也能用。卡住的是执行层——'跑测试、停在错误现场、检查页面、改代码、重跑'这个自动回路。微软把这套 harness 作为官方产品只随 Node 版发布，我们是改配置就用上了；Java 侧要自建等价物。而且就算建成，有两样东西拖累它：agent 的工作方式是高频'改一点跑一次'，genie 每次迭代都要付编译加 fork JVM 启动的成本，这个延迟对 agent 是乘法惩罚；更关键的是 genie 没有自动等待，flaky 底噪高，自动修复回路分不清真回归和时序噪音。所以准确的说法不是 Java 做不到，而是：<b>同样的投入，Node 侧的 agent 已经在干活，Java 侧还在造工具。</b>"</p>
+    <div class="strategy">这题是 Q3 的 agent 版本。主动承认"可以自建"，可信度反而上升——对照表里 genie 那格的备注就是这么写的，口径一致。</div>
+  </div>
+
+
+  <div class="qa">
+    <div class="q">Q4 · 跑过真机吗？效果如何？<span class="prob mid">可能</span></div>
+    <p class="a">"14 条用例本地已经全部跑通，今天可以现场跑一条给您看。下一步是接入共享测试环境和 CI 分片并行。"</p>
+    <div class="strategy">如果现场条件允许，<b>直接跑</b>——一条用例 + trace viewer，比任何回答有力。</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q5 · 谁来维护？团队都是 Java 背景怎么办？<span class="prob mid">可能</span></div>
+    <p class="a">"框架把维护成本压在纪律上：Locator 只允许出现在 POM 层且有收口规则、业务措辞有六条规范约束、数据全走 YAML——写用例的人接触的表面积很小。TS 对 Java 背景的 QA 语法迁移成本不高，真正要学的是 Playwright 本身，这个成本三个方案是一样的——而且 genie 那套显式等待的写法学起来并不比 auto-wait 简单。"</p>
+    <div class="strategy">需要你自备：团队里谁接、占多少人力（见第五节清单）。</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q6 · BDD 值不值？写用例会不会更慢？<span class="prob mid">可能</span></div>
+    <p class="a">"我们对这个问题做的不是判断而是实验：两个分支并行维护，同样的用例 BDD 写法和原生写法各一份。结论是写的速度差别不大，差别在读——Gherkin 报告 BA 能直接读。而且 BDD 是可选薄层，今天选了以后随时能退。"</p>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q7 · 镜像分支不是双倍维护成本吗？<span class="prob mid">可能</span></div>
+    <p class="a">"不是实时同步，是低频按需同步——POM、数据、API 层本来就共用，每次同步的只有接线层。它的定位是保险单，保费很低。"</p>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q8 · 怎么接我们的报告平台 / 流水线？<span class="prob mid">可能</span></div>
+    <p class="a">"Playwright 原生输出 JUnit XML，Allure 也有现成 reporter，接内部平台是一次性工作，在下一步计划第三条。"</p>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q9 · 万一 Playwright 本身不行了呢？<span class="prob mid">可能</span></div>
+    <p class="a">"Playwright 是微软维护的行业事实标准。而且这层风险和选 genie 完全一样——genie 底层也是 Playwright，这不是方案之间的差异项。"</p>
+    <div class="strategy">关键是最后一句：把"Playwright 风险"从你的方案剥离，它是所有候选共担的。</div>
+  </div>
+
+  <div class="qa">
+    <div class="q">Q10 · 多久能覆盖核心回归？<span class="prob mid">可能</span></div>
+    <p class="a">"建模成本已经量化：trade portal 91 条元素收敛成 28 个文件；复用已有步骤时新增一条用例就是几行 Gherkin。核心回归清单有 N 条，按此估算约 X 周。"</p>
+    <div class="strategy">N 和 X 需要你会前定好（见第五节清单）——这题不能现场即兴。</div>
+  </div>
+</section>
+
+<!-- ============ 自备 ============ -->
+<section>
+  <div class="eyebrow">五 · 会前清单</div>
+  <h2>需要你自备的弹药</h2>
+  <ul class="check">
+    <li><b>实测对比四组数据</b>：按文档第 03 节的固定口径跑出图表替换占位（对比 1 速度、对比 2 显式等待密度、对比 3 代码量、对比 4 失败产物）。最少先出 2——一个数字就能讲。</li>
+    <li><b>现场演示预热</b>：本地跑通一条建仓用例 + 预先生成一份失败 trace，trace viewer 提前打开放在后台标签页。</li>
+    <li><b>人力安排</b>：谁维护、占多少时间（Q5 的下半句）。</li>
+    <li><b>核心回归规模估算</b>：N 条用例、约 X 周（Q10 不能即兴）。</li>
+    <li><b>genie 补课</b>：确认它有没有 TS 支持路线图、报告平台的接入格式要求——对比表任何一格被当场纠错都会伤害整份文档的可信度。</li>
+    <li><b>AI 工装链被追问时的展示</b>：终端预开仓库，30 秒动作：<code>ls .claude/agents .claude/skills</code> + cat 一个 agent 定义——"这不是概念，是仓库里的文件"。</li>
+  </ul>
+</section>
+
+<div class="footnote">
+  本页为讲稿自用，含应答策略，不随汇报文档分发。汇报文档：docs/framework-selection.html（仓库）/ claude.ai artifact 链接。
+</div>
+
+</div>
