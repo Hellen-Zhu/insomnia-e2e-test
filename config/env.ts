@@ -32,4 +32,7 @@ export const env = {
   baseUrl: required('BASE_URL'),
   /** data-seeding API base; falls back to baseUrl when not configured */
   apiBaseUrl: process.env.API_BASE_URL ?? required('BASE_URL'),
+  /** read-only PostgreSQL connection for db verification steps; optional —
+   * only scenarios with database assertions need it (checked lazily in db/) */
+  databaseUrl: process.env.DATABASE_URL,
 } as const;

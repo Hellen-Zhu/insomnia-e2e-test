@@ -1,7 +1,9 @@
 import { test as base } from 'playwright-bdd';
 import { UserApi } from '../api/user.api';
+import { createDbPool } from '../db/db-client';
 import { env } from '../config/env';
 import type { APIRequestContext } from '@playwright/test';
+import type { Pool } from 'pg';
 
 /**
  * 场景内跨步骤传递的数据键。基座只定义空集，
@@ -71,7 +73,13 @@ type BaseFixtures = {
   ctx: ScenarioContext;
 };
 
-export const baseTest = base.extend<BaseFixtures>({
+type BaseWorkerFixtures = {
+  /** read-only PostgreSQL pool, one per worker; created lazily — only scenarios
+   * whose steps depend on a db fixture ever open a connection */
+  dbPool: Pool;
+};
+
+export const baseTest = base.extend<BaseFixtures, BaseWorkerFixtures>({
   /* API 造数：独立于浏览器的 HTTP 上下文（可配 API_BASE_URL 与鉴权头） */
   apiContext: async ({ playwright }, use) => {
     const apiContext = await playwright.request.newContext({ baseURL: env.apiBaseUrl });
@@ -80,4 +88,12 @@ export const baseTest = base.extend<BaseFixtures>({
   },
   userApi: async ({ apiContext }, use) => use(new UserApi(apiContext)),
   ctx: async ({}, use) => use(new ScenarioContext()),
+  dbPool: [
+    async ({}, use) => {
+      const pool = createDbPool();
+      await use(pool);
+      await pool.end();
+    },
+    { scope: 'worker' },
+  ],
 });

@@ -25,6 +25,7 @@ execute lazy-loaded code (YAML data index, fixtures) — path/data bugs need a r
 | `pages/components/` | design-system component objects (host → internals) | zero business words |
 | `flows/` | cross-page orchestration + arrival assertions | zero locators |
 | `api/` | data-seeding clients (never API functional tests) | no page awareness |
+| `db/` | read-only PostgreSQL verification queries (the mirror of api/: API writes preconditions, db reads persisted state) | never seeds or mutates; assert via `expect.poll` (persistence may lag); one lazy connection per worker |
 | `data/` | typed loader/index for test-data (code) | — |
 | `test-data/` | YAML cases/presets + .dat assets | read-only at runtime; deep-copied on read |
 | `config/` | env + credentials (`users.ts` role map) | secrets never hardcoded beyond test creds |

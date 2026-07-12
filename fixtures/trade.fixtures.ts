@@ -4,6 +4,7 @@ import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
 import { NewTradePage } from '../pages/new-trade/new-trade.page';
 import { TradeFlow } from '../flows/trade.flow';
 import { TradeApi } from '../api/trade.api';
+import { TradeQueries } from '../db/trade.queries';
 import { caseIdFromTitle, getCase } from '../data/case-data';
 import { type CreateTradeCase } from '../data/trade-cases';
 
@@ -27,6 +28,8 @@ type TradeFixtures = {
   tradeFlow: TradeFlow;
   /** 交易造数客户端（multipart 建仓，前置 Given 使用） */
   tradeApi: TradeApi;
+  /** read-only db verification queries (Then steps asserting persisted state) */
+  tradeDb: TradeQueries;
   /** 本场景的建仓用例数据：从场景标题（`<caseId> - 描述`）解析，创建与验证步骤共用 */
   tradeCase: CreateTradeCase;
 };
@@ -37,6 +40,7 @@ export const test = tradePortalTest.extend<TradeFixtures>({
   tradeFlow: async ({ tradePortalPage, newTradePage, tradeDetailPage }, use) =>
     use(new TradeFlow(tradePortalPage, newTradePage, tradeDetailPage)),
   tradeApi: async ({ apiContext }, use) => use(new TradeApi(apiContext)),
+  tradeDb: async ({ dbPool }, use) => use(new TradeQueries(dbPool)),
   /* 懒加载：只有解构了 tradeCase 的步骤所在场景才要求标题带 caseId。
    * 取数走全局 case 索引（getCase 是无类型的通用入口，不指明数据种类/文件），
    * CreateTradeCase 类型在这里一次性泛型收口 */
