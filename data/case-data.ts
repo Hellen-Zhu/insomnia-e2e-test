@@ -27,7 +27,7 @@ const cache = new Map<string, unknown>();
 export function loadYaml<T>(relativeFile: string): T {
   let doc = cache.get(relativeFile);
   if (doc === undefined) {
-    const absolute = path.resolve(__dirname, '../../', relativeFile);
+    const absolute = path.resolve(__dirname, '..', relativeFile);
     doc = parse(fs.readFileSync(absolute, 'utf8'), { merge: true });
     cache.set(relativeFile, doc);
   }
@@ -82,7 +82,7 @@ function yamlFilesUnder(dir: string): string[] {
 }
 
 function buildDataIndex(): DataIndex {
-  const root = path.resolve(__dirname, '../../');
+  const root = path.resolve(__dirname, '..');
   const index: DataIndex = { cases: new Map(), presets: new Map() };
   for (const file of yamlFilesUnder(path.join(root, TEST_DATA_ROOT))) {
     const relative = path.relative(root, file);

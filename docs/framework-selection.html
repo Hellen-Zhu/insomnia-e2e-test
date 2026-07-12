@@ -328,12 +328,12 @@
   <h3>分层架构：业务语言到 Locator 的单向依赖</h3>
   <div class="arch">
     <div class="arch-stack">
-      <div class="layer coupled"><span class="l-name">features/</span><span class="l-desc">Gherkin 业务语言（BA 可读，六规则词汇规范约束）</span><span class="l-loc num">118 行</span></div>
-      <div class="layer coupled"><span class="l-name">src/steps/</span><span class="l-desc">接线层：把业务短语映射到流程调用，不含逻辑</span><span class="l-loc num">214 行</span></div>
-      <div class="layer coupled"><span class="l-name">src/fixtures/</span><span class="l-desc">依赖注入：base → tradePortal → {trade, product} 继承树</span><span class="l-loc num">179 行</span></div>
-      <div class="layer agnostic"><span class="l-name">src/pom/</span><span class="l-desc">flows / pages / components——全库唯一允许出现 Locator 的层</span><span class="l-loc num">1 552 行</span></div>
-      <div class="layer agnostic"><span class="l-name">src/api/</span><span class="l-desc">API 造数（前置数据不占浏览器）</span><span class="l-loc num">97 行</span></div>
-      <div class="layer agnostic"><span class="l-name">test-data/ + utils/</span><span class="l-desc">YAML 用例库 + 全局数据索引 + 配置</span><span class="l-loc num">297 行</span></div>
+      <div class="layer coupled"><span class="l-name">test/features/</span><span class="l-desc">Gherkin 业务语言（BA 可读，六规则词汇规范约束）</span><span class="l-loc num">118 行</span></div>
+      <div class="layer coupled"><span class="l-name">test/steps/</span><span class="l-desc">接线层：把业务短语映射到流程调用，不含逻辑</span><span class="l-loc num">214 行</span></div>
+      <div class="layer coupled"><span class="l-name">fixtures/</span><span class="l-desc">依赖注入：base → tradePortal → {trade, product} 继承树</span><span class="l-loc num">179 行</span></div>
+      <div class="layer agnostic"><span class="l-name">pages/ + flows/</span><span class="l-desc">pages（含 components）是全库唯一允许出现 Locator 的层，flows 零 locator</span><span class="l-loc num">1 552 行</span></div>
+      <div class="layer agnostic"><span class="l-name">api/</span><span class="l-desc">API 造数（前置数据不占浏览器）</span><span class="l-loc num">97 行</span></div>
+      <div class="layer agnostic"><span class="l-name">test-data/ + data/</span><span class="l-desc">YAML 用例库 + 全局数据索引 + 配置</span><span class="l-loc num">297 行</span></div>
     </div>
     <div class="arch-side">
       <div class="brace b-coupled"><span class="pct">21%</span><span><b>playwright-bdd 耦合面</b><br>511 行，可整体替换</span></div>
@@ -553,10 +553,10 @@
     <table>
       <thead><tr><th>层</th><th>代码量</th><th>迁移动作</th></tr></thead>
       <tbody>
-        <tr><td class="dim">features/</td><td class="num">118 行</td><td>改写为 spec 的 <code>test()</code> 标题 + <code>test.step</code> 分步（镜像分支已有对应实现）</td></tr>
-        <tr><td class="dim">src/steps/</td><td class="num">214 行</td><td>并入 spec 或提为共享 helper 函数（镜像分支已有对应实现）</td></tr>
-        <tr><td class="dim">src/fixtures/</td><td class="num">179 行</td><td>删掉 <code>createBdd</code> 一层包装，<code>test.extend</code> 原样保留——改动为个位数行</td></tr>
-        <tr><td class="dim">src/pom + api + 数据 + 配置</td><td class="num">1 946 行</td><td><b>零改动</b></td></tr>
+        <tr><td class="dim">test/features/</td><td class="num">118 行</td><td>改写为 spec 的 <code>test()</code> 标题 + <code>test.step</code> 分步（镜像分支已有对应实现）</td></tr>
+        <tr><td class="dim">test/steps/</td><td class="num">214 行</td><td>并入 spec 或提为共享 helper 函数（镜像分支已有对应实现）</td></tr>
+        <tr><td class="dim">fixtures/</td><td class="num">179 行</td><td>删掉 <code>createBdd</code> 一层包装，<code>test.extend</code> 原样保留——改动为个位数行</td></tr>
+        <tr><td class="dim">pages + flows + api + 数据 + 配置</td><td class="num">1 946 行</td><td><b>零改动</b></td></tr>
       </tbody>
     </table>
   </div>

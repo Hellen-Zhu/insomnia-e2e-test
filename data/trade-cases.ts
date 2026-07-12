@@ -47,7 +47,7 @@ export interface CancellationPreset {
   comments?: string;
 }
 
-const DAT_DIR = path.resolve(__dirname, '../../test-data/trades/dat');
+const DAT_DIR = path.resolve(__dirname, '../test-data/trades/dat');
 
 /** 按产品类型解析 .dat 捕获文件路径；文件缺失时立刻报错而非让上传静默失败 */
 export function datFileFor(productType: ProductType): string {

@@ -10,7 +10,7 @@ import * as dotenv from 'dotenv';
 const ENV_NAME = process.env.ENV ?? 'dev';
 
 dotenv.config({
-  path: path.resolve(__dirname, `../../env/.env.${ENV_NAME}`),
+  path: path.resolve(__dirname, `../env/.env.${ENV_NAME}`),
 });
 
 function required(name: string): string {

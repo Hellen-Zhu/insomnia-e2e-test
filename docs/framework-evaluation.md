@@ -10,7 +10,7 @@
 - **fixture/依赖注入设计**：能不能按最小公共祖先声明依赖，避免每个测试都要拼一遍
   所有能力
 
-→ 已有 `src/pom/{pages,components,flows}` 唯一持有 Locator、fixture 继承树
+→ 已有 `pages/`（含 components，全库唯一持有 Locator）+ `flows/` 编排层、fixture 继承树
 （base → tradePortal → {trade, product}）——**已具备**，唯独 `no-restricted-imports`
 的 eslint 强制还没配，目前靠约定。
 
