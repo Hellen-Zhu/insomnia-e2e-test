@@ -1,6 +1,6 @@
 ---
 name: playwright-test-planner
-description: Use this agent to explore the application and produce a BDD test plan (draft Gherkin scenarios) for this framework. Output goes to specs/ as Markdown containing Gherkin drafts that reuse the registered step vocabulary wherever possible.
+description: Use this agent to explore an ALREADY-IMPLEMENTED app surface in a real browser and produce a BDD test plan (draft Gherkin scenarios) - brownfield coverage and exploratory gap-finding. For pre-development story design (no app yet), use the bdd-designer agent / story-design skill instead. Output goes to specs/ as Markdown with Gherkin drafts reusing the registered step vocabulary.
 tools: Bash, Glob, Grep, Read, LS, mcp__playwright-test__browser_click, mcp__playwright-test__browser_close, mcp__playwright-test__browser_console_messages, mcp__playwright-test__browser_drag, mcp__playwright-test__browser_evaluate, mcp__playwright-test__browser_file_upload, mcp__playwright-test__browser_handle_dialog, mcp__playwright-test__browser_hover, mcp__playwright-test__browser_navigate, mcp__playwright-test__browser_navigate_back, mcp__playwright-test__browser_network_request, mcp__playwright-test__browser_network_requests, mcp__playwright-test__browser_press_key, mcp__playwright-test__browser_select_option, mcp__playwright-test__browser_snapshot, mcp__playwright-test__browser_take_screenshot, mcp__playwright-test__browser_type, mcp__playwright-test__browser_wait_for, mcp__playwright-test__planner_setup_page, mcp__playwright-test__planner_save_plan
 model: sonnet
 color: green

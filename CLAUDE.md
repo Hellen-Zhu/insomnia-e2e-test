@@ -70,6 +70,26 @@ data`, `from the blotter`, `from the trade details page`). Reuse existing steps 
 
 ## AI agents
 
-`.claude/agents/` holds the Playwright planner/generator/healer, rewritten for this
-framework (they produce/repair feature+steps+pages, never raw specs). Seed specs for
-agent page setup live in `test/seed/` (agent-only `seed` project in playwright.config.ts).
+**Story TDD lifecycle** (features are written before the app feature is built):
+
+```
+/story-design  (pre-dev)   AC table → uncompiled drafts in specs/<STORY-ID>/
+                           (feature draft + data skeleton + testid requests)
+      ↓  frontend/backend development — the draft is the acceptance contract
+/story-implement (post-dev) promote into test/features/ → bddgen worklist →
+                           implement deltas → whole-module regression
+```
+
+`specs/` is deliberately outside the bddgen globs — design drafts never compile.
+The compile gate starts at promotion into `test/features/`.
+
+Agents (`.claude/agents/`): `bdd-designer` (design-phase drafting, text-only, no
+browser); `playwright-test-planner` (brownfield exploration of an implemented app);
+`playwright-test-generator` (implement one scenario against the live app);
+`playwright-test-healer` (fix failures at the right source layer — never
+`.features-gen/`). Seed specs for agent page setup live in `test/seed/`
+(agent-only `seed` project in playwright.config.ts).
+
+Skills (`.claude/skills/`): `/story-design`, `/story-implement` (the lifecycle
+above), `/new-module` (greenfield scaffold; story skills hand off to it when a
+story opens a brand-new module, at implement time only).
