@@ -36,14 +36,18 @@ The TDD spine applies from promotion onward:
 
 ## Phase 2 — Implement the deltas
 
-Layer discipline per CLAUDE.md (steps → flows → pages; locators only in pages/).
-Per scenario, delegating to the `playwright-test-generator` agent is the default for
-non-trivial work; implement inline when the delta is a line or two.
+**All UI judgment happens here** — the design phase deliberately carries none (the
+app did not exist then). For each `[NEW STEP]` in the handoff inventory: explore the
+delivered UI, decide the actual journey, and only then decide the layer (step-only /
+flow / page method / new locator). Layer discipline per CLAUDE.md (steps → flows →
+pages; locators only in pages/). Per scenario, delegating to the
+`playwright-test-generator` agent is the default for non-trivial work; implement
+inline when the delta is a line or two.
 
-**testid reconciliation**: handoff.md carries the testid requests sent to frontend.
-Verify each against the live DOM (browser tools / generator logs). Mismatches are a
-deliverable, not a silent fix: list request vs. reality and report — this list goes
-back to frontend, and is also how the testid-naming feedback loop stays alive.
+**testid audit**: while modeling the delivered UI, verify its `data-test` hooks
+follow the repo's naming grammar (kebab-case, component-prefixed, parameterized
+patterns). Missing or misnamed hooks are a deliverable, not a silent workaround:
+report the list back to frontend — this is the testid-naming feedback loop.
 
 ## Phase 3 — Verify
 
@@ -65,7 +69,7 @@ cases are the regression net. Report reachability and results honestly.
 
 - [ ] Draft promoted; specs/ package status flipped; no `[NEW STEP]` markers remain
 - [ ] Every AC's verdict realized (case green, extension green, or documented not-E2E)
-- [ ] testid requests reconciled against the live DOM; mismatches reported
+- [ ] Delivered UI's data-test hooks audited against the naming grammar; gaps reported
 - [ ] Layer boundaries intact (locators only in pages/, thin steps, locator-free flows)
 - [ ] Whole-module run green (or reachability honestly reported)
 - [ ] Everything in English; nothing committed until the user says "push"

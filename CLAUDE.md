@@ -74,10 +74,12 @@ data`, `from the blotter`, `from the trade details page`). Reuse existing steps 
 
 ```
 /story-design  (pre-dev)   AC table → uncompiled drafts in specs/<STORY-ID>/
-                           (feature draft + data skeleton + testid requests)
+                           (feature draft + data skeleton + story-extracted notes;
+                           business language only — no UI speculation of any kind)
       ↓  frontend/backend development — the draft is the acceptance contract
 /story-implement (post-dev) promote into test/features/ → bddgen worklist →
-                           implement deltas → whole-module regression
+                           ALL UI judgment happens here (journeys, layers, testid
+                           audit) → implement deltas → whole-module regression
 ```
 
 `specs/` is deliberately outside the bddgen globs — design drafts never compile.

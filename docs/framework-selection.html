@@ -219,6 +219,7 @@
   .compare td.ours, .compare th.ours { background: var(--accent-tint); }
   .compare th.ours { color: var(--accent); }
   td .note { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .tablecap { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
   .chip {
     display: inline-block; font-size: 12px; font-weight: 700; border-radius: 4px;
     padding: 1px 8px; line-height: 1.6; white-space: nowrap;
@@ -383,6 +384,98 @@
   <span class="kw">When</span> the checker approves the trade from the trade details page
   <span class="kw">Then</span> the trade is approved and marked as new             <span class="cm"># 封闭短语，列值在实现层</span></code></pre>
   <p>测试报告直接呈现这份文本——BA 不看代码就能复述每条用例在验证什么，这是 BDD 层带来的核心收益，也是后文评估"要不要为它承担维护风险"的天平另一端。</p>
+
+  <h3>能力对照总表：genie 有的都有，genie 没有的也有</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>能力</th><th>genie-playwright</th><th>本框架</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3" class="dim"><b>对齐区 —— genie 支持的，本框架逐项覆盖</b></td></tr>
+        <tr>
+          <td>Gherkin / BDD 用例组织</td>
+          <td><span class="chip g">Cucumber-JVM 内置</span></td>
+          <td class="ours"><span class="chip g">playwright-bdd</span><span class="note">另有编译期步骤检查，见增量区</span></td>
+        </tr>
+        <tr>
+          <td>POM 分层</td>
+          <td><span class="chip g">支持</span></td>
+          <td class="ours"><span class="chip g">目录即边界</span><span class="note">pages/ 是全库唯一 Locator 区，边界可 lint 强制</span></td>
+        </tr>
+        <tr>
+          <td>数据驱动</td>
+          <td><span class="chip g">支持</span></td>
+          <td class="ours"><span class="chip g">YAML 全局索引</span><span class="note">caseId 进场景标题，报告可一路溯源到业务数据</span></td>
+        </tr>
+        <tr>
+          <td>并行执行</td>
+          <td><span class="chip g">fork JVM</span></td>
+          <td class="ours"><span class="chip g">worker 级</span><span class="note">无进程级启动/内存线性开销，详见增量区</span></td>
+        </tr>
+        <tr>
+          <td>失败重试 / flaky 治理</td>
+          <td><span class="chip g">支持</span></td>
+          <td class="ours"><span class="chip g">三级 retry</span><span class="note">全局 / @retries 标签 / 命令行，@flaky 隔离流程成文</span></td>
+        </tr>
+        <tr>
+          <td>多环境切换</td>
+          <td><span class="chip g">支持</span></td>
+          <td class="ours"><span class="chip g">ENV=* 一键切换</span><span class="note">密钥经 CI 注入，进程变量优先于文件</span></td>
+        </tr>
+        <tr>
+          <td>API 造数（测试前置）</td>
+          <td><span class="chip g">支持</span></td>
+          <td class="ours"><span class="chip g">内置 APIRequestContext</span><span class="note">Given ... via api，造数不占浏览器，After 自动清理</span></td>
+        </tr>
+        <tr>
+          <td>报告体系</td>
+          <td><span class="chip g">genie 全家桶原生</span></td>
+          <td class="ours"><span class="chip g">双报告</span><span class="note">Playwright HTML（工程师，含 trace）+ Cucumber HTML（业务方）；JUnit XML / Allure 可对接内部平台</span></td>
+        </tr>
+        <tr>
+          <td>多浏览器</td>
+          <td><span class="chip g">支持</span></td>
+          <td class="ours"><span class="chip g">chromium / firefox / webkit</span><span class="note">config 一行开启</span></td>
+        </tr>
+        <tr>
+          <td>多角色业务流（maker/checker）</td>
+          <td><span class="chip g">可实现</span></td>
+          <td class="ours"><span class="chip g">已落地</span><span class="note">同会话角色切换，四眼审批全流程 14 用例实跑通过</span></td>
+        </tr>
+        <tr><td colspan="3" class="dim"><b>增量区 —— genie 不具备的，本框架已具备</b></td></tr>
+        <tr>
+          <td>自动等待 + web-first 断言</td>
+          <td><span class="chip b">无（已核实）</span><span class="note">封装层未暴露 auto-wait，用例需手写显式等待</span></td>
+          <td class="ours"><span class="chip g">引擎级</span><span class="note">flaky 第一来源在引擎层消灭，全库零显式 sleep</span></td>
+        </tr>
+        <tr>
+          <td>Worker 级并行分片</td>
+          <td><span class="chip b">无（已核实）</span><span class="note">仅 fork JVM，开销随并行度线性增长</span></td>
+          <td class="ours"><span class="chip g">runner 原生</span><span class="note">CI 可再按机器分片（--shard）</span></td>
+        </tr>
+        <tr>
+          <td>UI Mode / watch 交互调试</td>
+          <td><span class="chip b">无</span><span class="note">Playwright Test runner（Node 独占）的能力</span></td>
+          <td class="ours"><span class="chip g">开箱即用</span><span class="note">时间旅行式逐步回放，调试成本的分水岭</span></td>
+        </tr>
+        <tr>
+          <td>步骤词汇编译期拦截</td>
+          <td><span class="chip b">无</span><span class="note">Cucumber-JVM 的 undefined step 要跑起来才发现</span></td>
+          <td class="ours"><span class="chip g">bddgen 生成期报错</span><span class="note">表外措辞在写用例当下即失败，词汇表由工具强制</span></td>
+        </tr>
+        <tr>
+          <td>AI 测试工装链</td>
+          <td><span class="chip b">无对应物</span></td>
+          <td class="ours"><span class="chip g">已落地</span><span class="note">user story TDD 生命周期（设计 / 实现两阶段 skill + 4 个定制 agent）：开发交付前产出业务语言验收契约，交付后按层实现——步骤注册表恰好是 AI 的受控词汇菜单，编译期检查是 AI 输出的免费护栏</span></td>
+        </tr>
+        <tr>
+          <td>与前端同语言协作</td>
+          <td><span class="chip b">跨语言</span></td>
+          <td class="ours"><span class="chip g">TS 同构</span><span class="note">testid 命名语法成文契约，前端可直接读懂并贡献 POM</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tablecap">对齐区中 genie 侧能力按对内部使用情况的了解<b>从宽标注</b>——从宽有利于结论的稳健性：即便 genie 侧全部成立，本框架仍逐项覆盖；增量区仅列已核实或属 Node runner 独占的能力。</p>
 </section>
 
 <!-- ============ 对比 ============ -->
@@ -578,7 +671,7 @@
 </section>
 
 <div class="footnote">
-  数据口径：代码行数与依赖面统计自仓库当前主干（features / src 实测，不含生成物与 node_modules）；14 条用例已在本地浏览器实跑通过。genie-playwright 的关键能力描述（Cucumber + JUnit、fork JVM 并行、封装层无自动等待）已按内部实际使用情况核实。
+  数据口径：代码行数与依赖面统计自仓库当前主干（test 与各代码目录实测，不含生成物与 node_modules）；14 条用例已在本地浏览器实跑通过。genie-playwright 的关键能力描述（Cucumber + JUnit、fork JVM 并行、封装层无自动等待）已按内部实际使用情况核实。
 </div>
 
 </div>
