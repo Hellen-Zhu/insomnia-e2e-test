@@ -4,7 +4,8 @@ import { env } from './config/env';
 
 const testDir = defineBddConfig({
   features: 'test/features/**/*.feature',
-  /* fixtures 必须在 steps pattern 内：playwright-bdd 从中识别导出的 test 实例与 hooks */
+  /* fixtures must be inside the steps pattern: playwright-bdd discovers the
+     exported test instances and hooks from these files */
   steps: ['test/steps/**/*.ts', 'fixtures/**/*.ts'],
 });
 
@@ -12,16 +13,17 @@ export default defineConfig({
   testDir,
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
-  /* CI 上失败重试 1 次，重试时保留 trace 供回放定位 */
+  /* retry once on CI; the retry keeps its trace for replay-based diagnosis */
   retries: process.env.CI ? 1 : 0,
   workers: process.env.CI ? 2 : undefined,
   reporter: [
     ['list'],
-    /* 场景级墙钟时间戳与耗时（日志对账用），不需要时删掉这行即可 */
+    /* per-scenario wall-clock timestamps and durations (log reconciliation);
+       delete this line if not needed */
     ['./reporters/timing-reporter.ts'],
-    /* 工程师用：Playwright 官方报告，含 trace/截图 */
+    /* for engineers: official Playwright report with trace/screenshots */
     ['html', { outputFolder: 'reports/playwright-report', open: 'never' }],
-    /* 业务方用：Cucumber 格式报告，按 Feature/Scenario 组织 */
+    /* for business readers: Cucumber-format report organized by Feature/Scenario */
     cucumberReporter('html', { outputFile: 'reports/cucumber-report.html' }),
   ],
   use: {
@@ -35,7 +37,15 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
-    /* 需要多浏览器时取消注释即可
+    /* Agent-only project: seed specs give AI agents (planner/generator) a live
+       logged-in page. npm scripts pin --project=chromium so seeds never run in
+       normal or CI suites. */
+    {
+      name: 'seed',
+      testDir: './test/seed',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    /* uncomment for cross-browser runs
     { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
     */

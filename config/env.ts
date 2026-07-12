@@ -2,31 +2,34 @@ import * as path from 'node:path';
 import * as dotenv from 'dotenv';
 
 /**
- * 环境配置加载器。
+ * Environment config loader.
  *
- * 通过 `ENV` 变量选择环境文件：`ENV=staging npm test` 会加载 `env/.env.staging`。
- * 默认加载 `env/.env.dev`。已存在的进程环境变量优先级高于文件（便于 CI 注入密钥）。
+ * The `ENV` variable selects the env file: `ENV=staging npm test` loads
+ * `env/.env.staging`; default is `env/.env.dev`. Pre-existing process env vars
+ * take precedence over the file (so CI can inject secrets).
  */
 const ENV_NAME = process.env.ENV ?? 'dev';
 
 dotenv.config({
   path: path.resolve(__dirname, `../env/.env.${ENV_NAME}`),
+  /* suppress dotenv's startup banner/ad line in test output */
+  quiet: true,
 });
 
 function required(name: string): string {
   const value = process.env[name];
   if (!value) {
     throw new Error(
-      `缺少必需的环境变量 ${name}（当前环境: ${ENV_NAME}，请检查 env/.env.${ENV_NAME}）`,
+      `Missing required environment variable ${name} (current env: ${ENV_NAME}, check env/.env.${ENV_NAME})`,
     );
   }
   return value;
 }
 
 export const env = {
-  /** 当前环境名: dev / staging / prod */
+  /** current environment name: dev / staging / prod */
   name: ENV_NAME,
   baseUrl: required('BASE_URL'),
-  /** 造数 API 的地址，未配置时回退到 baseUrl */
+  /** data-seeding API base; falls back to baseUrl when not configured */
   apiBaseUrl: process.env.API_BASE_URL ?? required('BASE_URL'),
 } as const;
