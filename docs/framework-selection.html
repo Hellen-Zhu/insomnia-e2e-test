@@ -616,8 +616,9 @@
   <h3>先看事实</h3>
   <ul>
     <li>playwright-bdd 由单一核心维护者开发（社区活跃、迭代至 9.x），定位是<b>构建期代码生成器</b>：<code>bddgen</code> 把 <code>.feature</code> 编译成标准 Playwright Test spec，<b>运行时没有它的存在</b>——跑起来的就是纯 Playwright 测试。</li>
+    <li><b>采用度（2026-07 实测，npm registry）</b>：周安装 <b class="num">34.2 万</b>次，一年增长约 <b>4 倍</b>；近六周发布 3 个版本（9.0.0 → 9.2.0）。体量已达 cucumber-js 的 15%——上升期项目，不是弃养边缘。（口径说明：周下载以 CI 重装为主，是规模代理指标，不等于用户数。）</li>
     <li>它是 devDependency：锁定版本后配合锁定的 Playwright 大版本可长期稳定使用。真正的风险窗口是"Playwright 出破坏性大版本升级 × playwright-bdd 已停更"两个条件同时成立。</li>
-    <li>MIT 协议，代码生成器体量可 fork 自维护（下策，但存在）。</li>
+    <li>MIT 协议，代码生成器体量可 fork 自维护——这是退出前的中间级：全仓使用面仅 8 项、构建期工具坏了编译立刻红（不存在运行时静默出错），自维护风险可控。</li>
   </ul>
 
   <h3>依赖面：一张图</h3>
