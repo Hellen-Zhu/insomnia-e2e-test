@@ -1,0 +1,527 @@
+<title>E2E 自动化框架选型汇报</title>
+<style>
+  :root {
+    --bg: #f4f7f7;
+    --surface: #ffffff;
+    --ink: #16292e;
+    --muted: #5a6e74;
+    --faint: #8ba0a5;
+    --accent: #0b7285;
+    --accent-ink: #ffffff;
+    --accent-tint: #e3f0f2;
+    --line: #dbe4e5;
+    --line-strong: #b9c9cc;
+    --good: #1a7f4f;
+    --good-tint: #e2f2e9;
+    --warn: #a06514;
+    --warn-tint: #f7edda;
+    --bad: #b3402f;
+    --bad-tint: #f8e6e2;
+    --code-bg: #eef3f4;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+      "Noto Sans CJK SC", "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1517;
+      --surface: #131f22;
+      --ink: #e2eced;
+      --muted: #93a9ae;
+      --faint: #6d8288;
+      --accent: #45b8cc;
+      --accent-ink: #06272e;
+      --accent-tint: #12333a;
+      --line: #24363a;
+      --line-strong: #3a5157;
+      --good: #4cc38a;
+      --good-tint: #10301f;
+      --warn: #d9a53f;
+      --warn-tint: #33270e;
+      --bad: #e07a5f;
+      --bad-tint: #371711;
+      --code-bg: #0f1a1d;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f7f7;
+    --surface: #ffffff;
+    --ink: #16292e;
+    --muted: #5a6e74;
+    --faint: #8ba0a5;
+    --accent: #0b7285;
+    --accent-ink: #ffffff;
+    --accent-tint: #e3f0f2;
+    --line: #dbe4e5;
+    --line-strong: #b9c9cc;
+    --good: #1a7f4f;
+    --good-tint: #e2f2e9;
+    --warn: #a06514;
+    --warn-tint: #f7edda;
+    --bad: #b3402f;
+    --bad-tint: #f8e6e2;
+    --code-bg: #eef3f4;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1517;
+    --surface: #131f22;
+    --ink: #e2ecED;
+    --muted: #93a9ae;
+    --faint: #6d8288;
+    --accent: #45b8cc;
+    --accent-ink: #06272e;
+    --accent-tint: #12333a;
+    --line: #24363a;
+    --line-strong: #3a5157;
+    --good: #4cc38a;
+    --good-tint: #10301f;
+    --warn: #d9a53f;
+    --warn-tint: #33270e;
+    --bad: #e07a5f;
+    --bad-tint: #371711;
+    --code-bg: #0f1a1d;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- masthead ---------- */
+  .masthead { padding-bottom: 28px; border-bottom: 2px solid var(--ink); margin-bottom: 40px; }
+  .masthead .kicker {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 30px; line-height: 1.35; margin: 0 0 10px; font-weight: 700;
+    text-wrap: balance; letter-spacing: 0.01em;
+  }
+  .masthead .sub { color: var(--muted); margin: 0; max-width: 44em; }
+  .masthead .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px;
+    font-size: 12.5px; color: var(--faint); font-family: var(--mono);
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 56px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin-bottom: 6px;
+  }
+  h2 { font-size: 21px; margin: 0 0 14px; line-height: 1.4; text-wrap: balance; }
+  h3 { font-size: 16px; margin: 26px 0 8px; }
+  p { margin: 10px 0; max-width: 46em; }
+  .lede { font-size: 16px; }
+  ul, ol { padding-left: 1.4em; max-width: 44em; }
+  li { margin: 6px 0; }
+  li::marker { color: var(--accent); }
+
+  /* ---------- TL;DR ---------- */
+  .verdict {
+    background: var(--surface); border: 1px solid var(--line);
+    border-left: 4px solid var(--accent); border-radius: 6px;
+    padding: 22px 26px; margin-top: 18px;
+  }
+  .verdict-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  @media (max-width: 680px) { .verdict-grid { grid-template-columns: 1fr; } }
+  .verdict-item .v-label {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--faint); font-weight: 700; margin-bottom: 6px;
+  }
+  .verdict-item .v-head { font-weight: 700; margin-bottom: 4px; }
+  .verdict-item p { font-size: 13.5px; color: var(--muted); margin: 0; }
+
+  /* ---------- stat strip ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0 6px; }
+  @media (max-width: 680px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .stat .s-num { font-family: var(--mono); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .s-num em { font-style: normal; font-size: 13px; color: var(--faint); font-weight: 400; }
+  .stat .s-cap { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- architecture diagram ---------- */
+  .arch { display: grid; grid-template-columns: 1fr 190px; gap: 0 18px; margin: 22px 0; }
+  @media (max-width: 680px) { .arch { grid-template-columns: 1fr; } .arch-side { display: none; } }
+  .arch-stack { display: flex; flex-direction: column; gap: 6px; }
+  .layer {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 16px; display: flex; align-items: baseline; gap: 14px;
+  }
+  .layer .l-name { font-family: var(--mono); font-size: 13px; font-weight: 700; min-width: 118px; }
+  .layer .l-desc { font-size: 13px; color: var(--muted); }
+  .layer .l-loc { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .layer.coupled { border-left: 3px solid var(--warn); }
+  .layer.agnostic { border-left: 3px solid var(--good); }
+  .arch-side { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .brace {
+    border: 1px dashed var(--line-strong); border-left: none; border-radius: 0 8px 8px 0;
+    padding: 8px 12px; color: var(--muted); display: flex; flex-direction: column; justify-content: center;
+  }
+  .brace.b-coupled { flex: 0 0 auto; height: 138px; }
+  .brace.b-agnostic { flex: 1; }
+  .brace b { color: var(--ink); }
+  .brace .pct { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+  .b-coupled .pct { color: var(--warn); }
+  .b-agnostic .pct { color: var(--good); }
+
+  /* ---------- dependency bar ---------- */
+  .depbar { margin: 18px 0 8px; }
+  .depbar .bar { display: flex; height: 26px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line); }
+  .depbar .seg-a { background: var(--good); flex: 0 0 79%; }
+  .depbar .seg-b { background: var(--warn); flex: 1; }
+  .depbar .legend { display: flex; gap: 26px; margin-top: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: baseline; }
+
+  /* ---------- feature grid ---------- */
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+  @media (max-width: 680px) { .features { grid-template-columns: 1fr; } }
+  .feature {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .feature h4 { margin: 0 0 6px; font-size: 14.5px; }
+  .feature p { font-size: 13px; color: var(--muted); margin: 0; }
+  .feature code { font-size: 0.85em; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-top: 18px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  thead th {
+    font-size: 12px; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--code-bg); font-weight: 700; white-space: nowrap;
+  }
+  td.dim { font-weight: 700; white-space: nowrap; }
+  .compare col.ours { }
+  .compare td.ours, .compare th.ours { background: var(--accent-tint); }
+  .compare th.ours { color: var(--accent); }
+  td .note { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .chip {
+    display: inline-block; font-size: 12px; font-weight: 700; border-radius: 4px;
+    padding: 1px 8px; line-height: 1.6; white-space: nowrap;
+  }
+  .chip.g { background: var(--good-tint); color: var(--good); }
+  .chip.w { background: var(--warn-tint); color: var(--warn); }
+  .chip.b { background: var(--bad-tint); color: var(--bad); }
+  .chip.n { background: var(--code-bg); color: var(--muted); }
+
+  /* ---------- risk ladder ---------- */
+  .ladder { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; counter-reset: rung; }
+  .rung {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 16px 18px 16px 58px; position: relative;
+  }
+  .rung::before {
+    counter-increment: rung; content: counter(rung);
+    position: absolute; left: 18px; top: 16px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink);
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rung h4 { margin: 0 0 4px; font-size: 14.5px; }
+  .rung p { font-size: 13.5px; color: var(--muted); margin: 0; max-width: none; }
+
+  /* ---------- code block ---------- */
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 18px; overflow-x: auto; font-family: var(--mono);
+    font-size: 12.5px; line-height: 1.7; margin: 14px 0;
+  }
+  pre code { background: none; padding: 0; }
+  .cm { color: var(--faint); }
+  .kw { color: var(--accent); font-weight: 700; }
+
+  .footnote { font-size: 12.5px; color: var(--faint); border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px; }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <div class="kicker">技术选型汇报 · Trade Portal E2E</div>
+  <h1>E2E 自动化框架：能力总结、三方案对比与风险对冲</h1>
+  <p class="sub">基于 Playwright Test（TypeScript）+ playwright-bdd 的交易门户 E2E 框架已完成搭建与试点验证。本文总结框架能力，对比公司内部 genie-playwright（Java）与 Python 方案，并正面回答 playwright-bdd 的维护风险问题。</p>
+  <div class="meta">
+    <span>2026-07</span>
+    <span>@playwright/test 1.61</span>
+    <span>playwright-bdd 9.2</span>
+    <span>TypeScript 6.0</span>
+    <span>repo: insomnia-e2e-test</span>
+  </div>
+</header>
+
+<!-- ============ TL;DR ============ -->
+<section>
+  <div class="eyebrow">结论先行</div>
+  <h2>一句话建议</h2>
+  <p class="lede">Trade Portal 的 E2E 选用 <b>TypeScript + Playwright Test</b>：与被测前端同语言，独占官方旗舰 runner（fixtures 依赖注入、自动并行、trace、UI Mode）与 AI 工具链演进；BDD 层（playwright-bdd）作为<b>可插拔的薄层</b>引入，其维护风险已通过架构隔离和一条经过实测的退出路径对冲。</p>
+  <div class="verdict">
+    <div class="verdict-grid">
+      <div class="verdict-item">
+        <div class="v-label">推荐什么</div>
+        <div class="v-head">TS + Playwright Test</div>
+        <p>官方第一优先级语言绑定，runner 能力最全；BDD 为可选薄层，业务语言与实现解耦。</p>
+      </div>
+      <div class="verdict-item">
+        <div class="v-label">为什么不是另两个</div>
+        <div class="v-head">runner 与协作面差距</div>
+        <p>Java/Python 绑定没有 Playwright Test runner；genie 生态的集成优势可以通过报告桥接获得，runner 能力无法桥接。</p>
+      </div>
+      <div class="verdict-item">
+        <div class="v-label">最大风险</div>
+        <div class="v-head">playwright-bdd 个人维护</div>
+        <p>耦合面仅占代码 21%，且已维护一个不含 BDD 的镜像分支实证退出路径——风险可量化、可退出。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 框架能力 ============ -->
+<section>
+  <div class="eyebrow">01 · 框架能力</div>
+  <h2>已落地的框架，不是方案设想</h2>
+  <p>框架已在真实 Trade Portal 页面模型上完成搭建，覆盖登录、建仓（数据驱动 + step-in 变体）、maker-checker 审批（双 UI 入口）与全链路 journey 冒烟，每轮变更经静态验证链（<code>bddgen</code> → <code>tsc</code> → <code>eslint</code> → <code>test --list</code>）把关。</p>
+
+  <div class="stats">
+    <div class="stat"><div class="s-num">14</div><div class="s-cap">测试用例 · 4 个 feature</div></div>
+    <div class="stat"><div class="s-num">2 457 <em>行</em></div><div class="s-cap">框架代码（不含生成物）</div></div>
+    <div class="stat"><div class="s-num">28</div><div class="s-cap">页面对象 / 组件 / 流程文件</div></div>
+    <div class="stat"><div class="s-num">2 <em>分支</em></div><div class="s-cap">BDD 主干 + 原生写法镜像</div></div>
+  </div>
+
+  <h3>分层架构：业务语言到 Locator 的单向依赖</h3>
+  <div class="arch">
+    <div class="arch-stack">
+      <div class="layer coupled"><span class="l-name">features/</span><span class="l-desc">Gherkin 业务语言（BA 可读，六规则词汇规范约束）</span><span class="l-loc num">118 行</span></div>
+      <div class="layer coupled"><span class="l-name">src/steps/</span><span class="l-desc">接线层：把业务短语映射到流程调用，不含逻辑</span><span class="l-loc num">214 行</span></div>
+      <div class="layer coupled"><span class="l-name">src/fixtures/</span><span class="l-desc">依赖注入：base → tradePortal → {trade, product} 继承树</span><span class="l-loc num">179 行</span></div>
+      <div class="layer agnostic"><span class="l-name">src/pom/</span><span class="l-desc">flows / pages / components——全库唯一允许出现 Locator 的层</span><span class="l-loc num">1 552 行</span></div>
+      <div class="layer agnostic"><span class="l-name">src/api/</span><span class="l-desc">API 造数（前置数据不占浏览器）</span><span class="l-loc num">97 行</span></div>
+      <div class="layer agnostic"><span class="l-name">test-data/ + utils/</span><span class="l-desc">YAML 用例库 + 全局数据索引 + 配置</span><span class="l-loc num">297 行</span></div>
+    </div>
+    <div class="arch-side">
+      <div class="brace b-coupled"><span class="pct">21%</span><span><b>playwright-bdd 耦合面</b><br>511 行，可整体替换</span></div>
+      <div class="brace b-agnostic"><span class="pct">79%</span><span><b>框架无关资产</b><br>1 946 行，换任何 runner 原样保留</span></div>
+    </div>
+  </div>
+
+  <h3>八项核心能力</h3>
+  <div class="features">
+    <div class="feature">
+      <h4>业务语言规范（六规则词汇表）</h4>
+      <p>业务状态是封闭短语而非参数（如 <code>the trade is approved and marked as new</code>，裁决 × 状态双维锁定）；表外措辞直接编译失败，词汇不会静默漂移。规范沉淀在 <code>docs/gherkin-style.md</code>。</p>
+    </div>
+    <div class="feature">
+      <h4>数据驱动三层设计</h4>
+      <p>caseId 写进场景标题绑定 YAML 用例；全局懒加载索引 + 命名空间（<code>cases</code> / <code>*_preset</code>），跨文件重复 key 与 typo 键构建期报错；深拷贝取数保证并行安全。caseId 未来可机械替换为 ADO work item ID。</p>
+    </div>
+    <div class="feature">
+      <h4>POM 纪律：Locator 收口</h4>
+      <p>固定元素一律类头部 <code>readonly</code> 字段、方法体零 Locator 构造；运行时参数化走具名工厂。元素清单可与前端 testid 清单逐行对照评审。</p>
+    </div>
+    <div class="feature">
+      <h4>组件层（设计系统映射）</h4>
+      <p>testid 打在组件宿主、真实控件在内部时，"宿主 → 内部"映射收口在 <code>components/</code>——组件库内部结构变化只改一处。</p>
+    </div>
+    <div class="feature">
+      <h4>多角色同会话切换</h4>
+      <p>maker 建仓 → checker 审批在同一浏览器会话完成（清 cookie 重登），业务产物经场景级上下文跨角色流转，无需双会话开销。</p>
+    </div>
+    <div class="feature">
+      <h4>API 造数 + 测试粒度哲学</h4>
+      <p>"E2E 是套件级属性"：审批用例经 API 造数隔离被测行为，失败即定位；API/UI 造数等价性用一条 <code>@journey</code> 全链路冒烟封口，不为对称堆用例。</p>
+    </div>
+    <div class="feature">
+      <h4>工程化与稳定性策略</h4>
+      <p>dotenvx 分环境注入（密钥不进库）；flaky 用例显形（报告标黄）→ <code>--repeat-each</code> 复现 → 修根因 → <code>@flaky</code> 隔离区不阻塞合并。</p>
+    </div>
+    <div class="feature">
+      <h4>AI 工具链就绪</h4>
+      <p>仓库已内置 Playwright Test Agents 脚手架（planner / generator / healer）——用例规划、生成与自愈的官方 AI 能力目前只在 Node 侧演进。</p>
+    </div>
+  </div>
+
+  <h3>报告即文档：业务可读的用例长什么样</h3>
+<pre><code><span class="kw">Scenario:</span> TRADE-103 - Checker approves a pending trade from the trade details page
+  <span class="kw">Given</span> a "FX_TRF" trade has been created via api          <span class="cm"># API 造数，不占浏览器</span>
+  <span class="kw">When</span> the checker approves the trade from the trade details page
+  <span class="kw">Then</span> the trade is approved and marked as new             <span class="cm"># 封闭短语，列值在实现层</span></code></pre>
+  <p>测试报告直接呈现这份文本——BA 不看代码就能复述每条用例在验证什么，这是 BDD 层带来的核心收益，也是后文评估"要不要为它承担维护风险"的天平另一端。</p>
+</section>
+
+<!-- ============ 对比 ============ -->
+<section>
+  <div class="eyebrow">02 · 方案对比</div>
+  <h2>三个候选：本框架 · genie-playwright（Java）· Python</h2>
+  <p>Playwright 官方提供多语言绑定，但 <b>Playwright Test runner 只存在于 Node.js 侧</b>——fixtures 依赖注入、自动并行分片、UI Mode、watch、组件测试与 Test Agents 都是 runner 的能力而非绑定的能力。Java/Python 方案本质是"Playwright 浏览器驱动 + 各自生态的 runner"。这是对比的主轴。</p>
+
+  <div class="tablewrap">
+    <table class="compare">
+      <colgroup><col><col class="ours"><col><col></colgroup>
+      <thead>
+        <tr>
+          <th>维度</th>
+          <th class="ours">本框架<br>TS + Playwright Test</th>
+          <th>genie-playwright<br>Java + genie 生态</th>
+          <th>Python<br>pytest-playwright</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="dim">测试 runner</td>
+          <td class="ours"><span class="chip g">官方旗舰</span><span class="note">fixtures DI、自动并行 worker、分片、重试、trace、HTML 报告开箱即用</span></td>
+          <td><span class="chip w">自组</span><span class="note">JUnit/TestNG 承担 runner，能力由 genie 封装补齐</span></td>
+          <td><span class="chip w">pytest</span><span class="note">官方插件提供 fixtures；并行依赖 pytest-xdist</span></td>
+        </tr>
+        <tr>
+          <td class="dim">API 模型</td>
+          <td class="ours"><span class="chip g">async · 与前端同构</span></td>
+          <td><span class="chip w">sync 阻塞</span><span class="note">Playwright 实例非线程安全，并行需按线程隔离实例</span></td>
+          <td><span class="chip n">sync / async 双轨</span></td>
+        </tr>
+        <tr>
+          <td class="dim">调试体验</td>
+          <td class="ours"><span class="chip g">UI Mode + trace + watch</span><span class="note">UI Mode / watch 为 Node 独占</span></td>
+          <td><span class="chip n">trace + codegen</span></td>
+          <td><span class="chip n">trace + codegen</span></td>
+        </tr>
+        <tr>
+          <td class="dim">BDD 方案</td>
+          <td class="ours"><span class="chip w">playwright-bdd（个人维护）</span><span class="note">风险与对冲见下节；且为可选层</span></td>
+          <td><span class="chip g">Cucumber-JVM（最成熟）</span><span class="note">SmartBear 官方，genie 若内置则开箱即用</span></td>
+          <td><span class="chip n">pytest-bdd（社区）</span></td>
+        </tr>
+        <tr>
+          <td class="dim">新特性到达速度</td>
+          <td class="ours"><span class="chip g">第一优先级</span><span class="note">UI Mode、组件测试、Test Agents 均 Node 先行</span></td>
+          <td><span class="chip w">滞后或缺失</span></td>
+          <td><span class="chip w">滞后或缺失</span></td>
+        </tr>
+        <tr>
+          <td class="dim">与被测前端协作</td>
+          <td class="ours"><span class="chip g">同语言 TS</span><span class="note">testid 约定、类型/常量共享、前端可直接读懂并贡献 POM</span></td>
+          <td><span class="chip n">跨语言</span></td>
+          <td><span class="chip n">跨语言</span></td>
+        </tr>
+        <tr>
+          <td class="dim">内部平台集成</td>
+          <td class="ours"><span class="chip w">需对接</span><span class="note">输出 JUnit XML / Allure 兼容报告接入内部平台，属一次性工作</span></td>
+          <td><span class="chip g">genie 全家桶原生</span><span class="note">报告、流水线、合规面开箱即用——内部方案的真实优势</span></td>
+          <td><span class="chip b">无现成集成</span></td>
+        </tr>
+        <tr>
+          <td class="dim">团队技能面</td>
+          <td class="ours"><span class="chip n">前端 + QA 均可上手</span></td>
+          <td><span class="chip g">公司 Java QA 存量技能</span></td>
+          <td><span class="chip n">脚本向团队友好</span></td>
+        </tr>
+        <tr>
+          <td class="dim">已验证资产</td>
+          <td class="ours"><span class="chip g">2 457 行 · 14 用例已落地</span></td>
+          <td><span class="chip n">生态成熟，本项目需从零建模</span></td>
+          <td><span class="chip b">无</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>对 genie-playwright 的公平结论</h3>
+  <p>genie 的优势集中在<b>集成面</b>（报告、流水线、合规、内部支持团队），这些可以通过标准报告格式桥接部分获得；它的短板集中在 <b>runner 面</b>（Java 绑定无 Playwright Test，sync API 且实例非线程安全，并行与调试体验需生态自建），而 runner 能力无法桥接。对于一个<b>被测系统本身是 TS 前端</b>的项目，同语言协作 + 旗舰 runner 的组合收益大于生态迁移成本——若未来出现被测系统为 Java 服务端为主、或团队完全无 TS 技能的项目，genie 仍是合理默认。</p>
+</section>
+
+<!-- ============ 风险 ============ -->
+<section>
+  <div class="eyebrow">03 · 风险专题</div>
+  <h2>playwright-bdd 是个人维护的，停更了怎么办？</h2>
+  <p class="lede">正面回答：这个风险是真实的，我们没有回避它，而是把它<b>架构化</b>了——耦合面被压缩到 21%，退出路径不是纸面方案而是一个持续维护的镜像分支。</p>
+
+  <h3>先看事实</h3>
+  <ul>
+    <li>playwright-bdd 由单一核心维护者开发（社区活跃、迭代至 9.x），定位是<b>构建期代码生成器</b>：<code>bddgen</code> 把 <code>.feature</code> 编译成标准 Playwright Test spec，<b>运行时没有它的存在</b>——跑起来的就是纯 Playwright 测试。</li>
+    <li>它是 devDependency：锁定版本后配合锁定的 Playwright 大版本可长期稳定使用。真正的风险窗口是"Playwright 出破坏性大版本升级 × playwright-bdd 已停更"两个条件同时成立。</li>
+    <li>MIT 协议，代码生成器体量可 fork 自维护（下策，但存在）。</li>
+  </ul>
+
+  <h3>依赖面：一张图</h3>
+  <div class="depbar">
+    <div class="bar"><div class="seg-a"></div><div class="seg-b"></div></div>
+    <div class="legend">
+      <span><span class="dot" style="background: var(--good)"></span>框架无关（POM / API / 数据 / 配置）— <b class="num">1 946 行 · 79%</b></span>
+      <span><span class="dot" style="background: var(--warn)"></span>playwright-bdd 耦合面（features / steps / fixtures）— <b class="num">511 行 · 21%</b></span>
+    </div>
+  </div>
+  <p>全仓只有 8 个文件 import 到 playwright-bdd，全部位于接线层。承载真正复杂度的页面模型、业务流程、数据索引、API 造数——占代码量近八成——不知道 BDD 层的存在。</p>
+
+  <h3>三层对冲，逐级兜底</h3>
+  <div class="ladder">
+    <div class="rung">
+      <h4>锁版本继续用（零成本）</h4>
+      <p>构建期工具停更不影响既有版本工作。只要不激进追 Playwright 大版本，现状可稳定运行以年计。</p>
+    </div>
+    <div class="rung">
+      <h4>架构薄耦合（已内建）</h4>
+      <p>steps 层被刻意约束为"短语 → 流程调用"的接线，不写逻辑；所有断言与操作在 pom/flows 层。替换 BDD 层不触碰任何业务建模代码。</p>
+    </div>
+    <div class="rung">
+      <h4>实证退出路径（已演练）</h4>
+      <p>仓库维护着 <code>feature/plain-playwright</code> 镜像分支：同一套 POM / 数据 / API 层，用原生 <code>test.step</code> 实现同样的用例。迁移不是估算出来的，是做过一遍量出来的——改写的就是那 ~500 行接线层。</p>
+    </div>
+  </div>
+
+  <h3>迁移成本明细（若触发退出）</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>层</th><th>代码量</th><th>迁移动作</th></tr></thead>
+      <tbody>
+        <tr><td class="dim">features/</td><td class="num">118 行</td><td>改写为 spec 的 <code>test()</code> 标题 + <code>test.step</code> 分步（镜像分支已有对应实现）</td></tr>
+        <tr><td class="dim">src/steps/</td><td class="num">214 行</td><td>并入 spec 或提为共享 helper 函数（镜像分支已有对应实现）</td></tr>
+        <tr><td class="dim">src/fixtures/</td><td class="num">179 行</td><td>删掉 <code>createBdd</code> 一层包装，<code>test.extend</code> 原样保留——改动为个位数行</td></tr>
+        <tr><td class="dim">src/pom + api + 数据 + 配置</td><td class="num">1 946 行</td><td><b>零改动</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>丢失的是 Gherkin 这层业务可读文本（报告降级为 <code>test.step</code> 标题），业务词汇规范本身跨分支共用、不丢失。备选方案 Cucumber.js（SmartBear 官方 JS 实现）可保住 Gherkin，但要放弃 Playwright Test runner——那恰是我们选型的核心理由，故列为下下策。</p>
+</section>
+
+<!-- ============ 下一步 ============ -->
+<section>
+  <div class="eyebrow">04 · 决策与下一步</div>
+  <h2>请求确认的事项与推进节奏</h2>
+  <ol>
+    <li><b>确认选型</b>：Trade Portal E2E 采用本框架（TS + Playwright Test + playwright-bdd 薄层），genie-playwright 继续作为 Java 侧项目默认。</li>
+    <li><b>真机首跑</b>：当前为静态验证全绿（编译 / lint / 用例枚举），接入测试环境完成浏览器实跑与断言校准（如详情页确认后的跳转行为、状态列值）。</li>
+    <li><b>报告桥接</b>：输出 JUnit XML / Allure 兼容格式接入内部报告平台，弥合与 genie 生态的集成差距。</li>
+    <li><b>ADO 打通</b>：caseId（<code>TRADE-001</code> 式编号）按设计机械替换为 work item ID，用例与需求双向可追溯。</li>
+    <li><b>CI 接入</b>：利用 runner 原生分片并行；<code>@flaky</code> 隔离区不阻塞主流程。</li>
+    <li><b>保险维持</b>：<code>plain-playwright</code> 镜像分支随主干低频同步，作为 BDD 层的常备退出路径。</li>
+  </ol>
+</section>
+
+<div class="footnote">
+  数据口径：代码行数与依赖面统计自仓库当前主干（features / src 实测，不含生成物与 node_modules）。对 genie-playwright 的描述基于 Playwright Java 绑定的公开事实与内部生态的一般特征，具体能力以内部文档为准。
+</div>
+
+</div>
