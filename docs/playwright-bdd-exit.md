@@ -20,12 +20,15 @@ Playwright Test。
 |---|---|---|---|
 | 1 | `src/fixtures/base.fixtures.ts` | 第 1 行 `import { test as base } from 'playwright-bdd'`（fixture 树的根） | 改为从 `@playwright/test` import，一行 |
 | 2 | `src/fixtures/{trade-portal,trade,product}.fixtures.ts` | 各文件 1 行 `createBdd` import + 末尾 `export const { Given, When, Then } = createBdd(test)` | 删除，每文件 2~3 行；**`test.extend` 的全部 fixture 定义体原样保留**（179 行中约 10 行真正动） |
-| 3 | `src/steps/hooks.ts`（36 行） | `createBdd` 提供的 Before/After 注册 | 换 Playwright 原生 auto-fixture 实现同样逻辑 |
-| 4 | `features/`（118 行） | Gherkin 文本。格式是 Cucumber 标准，但本工具链中唯一消费者是 bddgen | 重生为 spec 的 `test()` 标题 + `test.step` 标题（plain 分支 `tests/*.spec.ts` 即其形态） |
-| 5 | `src/steps/*.steps.ts`（214 行） | 仅注册壳：`Given('...', ...)` 的匹配串、正则受限选择集、"首参数必须字面量解构"的静态解析约束 | 函数体逻辑（造数编排、`STATUS_BY_PHRASE` 映射、对 flow 的调用）**原样搬入 spec/helper**，只换壳 |
+| 3 | `src/fixtures/hooks.ts`（36 行） | `createBdd` 提供的 Before/After 注册 | 换 Playwright 原生 auto-fixture 实现同样逻辑 |
+| 4 | `src/test/features/`（118 行） | Gherkin 文本。格式是 Cucumber 标准，但本工具链中唯一消费者是 bddgen | 重生为 spec 的 `test()` 标题 + `test.step` 标题（plain 分支 `tests/*.spec.ts` 即其形态） |
+| 5 | `src/test/steps/`（214 行） | 仅注册壳：`Given('...', ...)` 的匹配串、正则受限选择集、"首参数必须字面量解构"的静态解析约束 | 函数体逻辑（造数编排、`STATUS_BY_PHRASE` 映射、对 flow 的调用）**原样搬入 spec/helper**，只换壳 |
 | 6 | `playwright.config.ts` | `defineBddConfig({...})` 块与 `cucumberReporter` | 换回普通 `testDir`，几行 |
 | 7 | `package.json` | 4 个 script 中的 `bddgen &&` 前缀 | 删前缀 |
-| 8 | 生成物 `features/*.feature.spec.js` | bddgen 编译输出 | 非手写代码，退出即消失 |
+| 8 | 生成物 `.features-gen/`（git 忽略） | bddgen 编译输出 | 非手写代码，退出即消失 |
+
+目录结构已让耦合面物理可见：feature 与 steps 同住 `src/test/` 一棵子树——
+**退出 = 删除 `src/test/` + `src/fixtures/` 里的 createBdd 行与 hooks.ts + config 两行。**
 
 ## 住在耦合层、但**不属于** playwright-bdd 的（退出时存活）
 
@@ -47,16 +50,17 @@ Playwright Test。
 ## 实证：双分支 diff 的解读
 
 `feature/plain-playwright` 是不含 playwright-bdd 的镜像分支。对比两分支时注意剔除噪音：
-`src/pom` 下的差异**与 BDD 无关**，是镜像分支的同步滞后（locator 收口、trade-detail
-审批用例等尚未同步）。剔除后，结构性差异只有：
+UI 模型层（pages/flows）下的差异**与 BDD 无关**，是镜像分支的同步滞后（locator 收口、
+trade-detail 审批用例、目录重构等尚未同步——plain 分支仍是旧目录结构）。
+剔除后，结构性差异只有：
 
 ```
-features/*.feature      ->  tests/*.spec.ts      （文本换形态）
-src/steps/              ->  删除                  （逻辑搬入 spec/helper）
-src/fixtures/*          ->  每文件头尾 2~3 行     （去掉 createBdd 包装）
+src/test/features/      ->  tests/*.spec.ts      （文本换形态）
+src/test/steps/         ->  删除                  （逻辑搬入 spec/helper）
+src/fixtures/*          ->  每文件头尾 2~3 行     （去掉 createBdd 包装 + hooks.ts）
 playwright.config.ts    ->  defineBddConfig 块    （换回 testDir）
 package.json            ->  bddgen 前缀           （删除）
-src/pom + api + data    ->  零改动
+pages + flows + api + data  ->  零改动
 ```
 
 一句话总结：**118 行文本换形态、214 行逻辑搬家换壳、179 行 fixtures 改约 10 行、

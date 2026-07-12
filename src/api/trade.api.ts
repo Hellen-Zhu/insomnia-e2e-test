@@ -1,7 +1,7 @@
 import * as fs from 'node:fs';
 import { expect } from '@playwright/test';
 import { ApiClient } from './api-client';
-import { datFileFor, type CreateTradeCase, type ProductType } from '../utils/trade-cases';
+import { datFileFor, type CreateTradeCase, type ProductType } from '../data/trade-cases';
 
 interface CreateTradeResponse {
   data: { trade: { id: string } };

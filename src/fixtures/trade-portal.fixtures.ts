@@ -1,8 +1,8 @@
 import { createBdd } from 'playwright-bdd';
 import { baseTest } from './base.fixtures';
-import { LoginPage } from '../pom/pages/login.page';
-import { TradePortalPage } from '../pom/pages/trade-portal/trade-portal.page';
-import { LoginFlow } from '../pom/flows/login.flow';
+import { LoginPage } from '../pages/login.page';
+import { TradePortalPage } from '../pages/trade-portal/trade-portal.page';
+import { LoginFlow } from '../flows/login.flow';
 
 /**
  * 应用入口层：登录页 + trade portal（落地页）+ UI 登录流程。

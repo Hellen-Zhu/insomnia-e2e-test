@@ -5,7 +5,7 @@
 ## 架构
 
 ```
-features/*.feature (Gherkin, 业务可读)
+src/test/features/*.feature (Gherkin, 业务可读)
         ↓ bddgen 编译
 .features-gen/ (Playwright 原生测试, 自动生成, git 忽略)
         ↓
@@ -30,30 +30,37 @@ ENV=staging npm test    # 切换环境
 ## 目录结构与分层约定
 
 ```
-├── features/           # 特性层：Gherkin 场景（业务语言）
 ├── src/
-│   ├── pom/            # UI 模型层：唯一允许出现 Locator 的地方
-│   │   ├── flows/      #   流程层：跨页面业务流程编排（登录、下单）
-│   │   ├── pages/      #   页面层：POM，封装定位器与页面行为
-│   │   └── components/ #   组件层：设计系统组件对象（宿主→内部元素的映射）
-│   ├── steps/          # 步骤层：Gherkin ↔ flow/page 的薄胶水
-│   ├── fixtures/       # DI 中心：base（横切）+ 各业务域一个文件
-│   └── config/         # 配置层：环境相关配置（随 ENV 变化）
-├── test-data/          # 外部测试数据（JSON），Gherkin 中以业务别名引用
+│   ├── test/           # BDD 耦合面：整棵子树是 playwright-bdd 的全部领地
+│   │   ├── features/   #   特性层：Gherkin 场景（业务语言）
+│   │   └── steps/      #   步骤层：Gherkin ↔ flow/page 的薄胶水
+│   ├── fixtures/       # DI 中心：base（横切）+ 各业务域一个文件 + hooks
+│   ├── pages/          # UI 模型层：唯一允许出现 Locator 的地方
+│   │   └── components/ #   设计系统组件对象（宿主→内部元素的映射）
+│   ├── flows/          # 流程层：跨页面业务流程编排（登录、下单）——零 locator
+│   ├── api/            # 造数客户端（multipart 建仓等）
+│   ├── data/           # 数据访问层：YAML 全局索引 + 用例类型
+│   ├── config/         # 配置层：环境相关配置（随 ENV 变化）
+│   └── reporters/      # 自定义 reporter
+├── test-data/          # 外部测试数据（YAML），Gherkin 中以 caseId/别名引用
 ├── env/                # 各环境变量文件 (.env.dev / .env.staging ...)
 ├── playwright.config.ts
 └── .github/workflows/  # CI
 ```
 
+目录即边界：`src/test/` 是 BDD 耦合面的全部（退出 playwright-bdd = 删这棵子树 +
+fixtures 里的 createBdd 几行，见 [docs/playwright-bdd-exit.md](docs/playwright-bdd-exit.md)）；
+`src/pages/` 是唯一 Locator 区。
+
 **分层纪律（可维护性的关键）——依赖只允许向下：**
 
 | 层 | 职责 | 可以调用 | 禁止 |
 |---|---|---|---|
-| `features/` | 纯业务语言描述场景 | — | 选择器、URL 等技术细节 |
-| `src/steps/` | 一行 Gherkin ↔ 一次调用 | flow、page | component、Playwright 原语、业务逻辑 |
-| `src/pom/flows/` | 跨页面业务流程编排 + 到达断言 | page | 持有定位器、感知 Gherkin |
-| `src/pom/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page、感知 Gherkin |
-| `src/pom/components/` | 设计系统组件（宿主→内部） | 原语 | page、flow |
+| `src/test/features/` | 纯业务语言描述场景 | — | 选择器、URL 等技术细节 |
+| `src/test/steps/` | 一行 Gherkin ↔ 一次调用 | flow、page | component、Playwright 原语、业务逻辑 |
+| `src/flows/` | 跨页面业务流程编排 + 到达断言 | page | 持有定位器、感知 Gherkin |
+| `src/pages/` | 定位器 + 单页行为 + 页面级断言 | component、原语 | 其他 page、感知 Gherkin |
+| `src/pages/components/` | 设计系统组件（宿主→内部） | 原语 | page、flow |
 
 **step 调 flow 还是 page？** 这行 Gherkin 跨页面（`the maker creates a new trade`）→ flow；单页动作（`the maker is on the trade portal`）→ page。
 
@@ -61,7 +68,7 @@ ENV=staging npm test    # 切换环境
 
 ### 新增一个页面对象
 
-1. 在 `src/pom/pages/` 创建类，继承 `BasePage`：
+1. 在 `src/pages/` 创建类，继承 `BasePage`：
 
 ```ts
 export class ProfilePage extends BasePage {
@@ -101,9 +108,9 @@ profilePage: async ({ page }, use) => use(new ProfilePage(page)),
 
 ### 新增一个场景
 
-1. 在 `features/` 写 Gherkin 场景（优先复用已有步骤；措辞遵循
+1. 在 `src/test/features/` 写 Gherkin 场景（优先复用已有步骤；措辞遵循
    [docs/gherkin-style.md](docs/gherkin-style.md) 的六条规则与词汇表）
-2. 缺失的步骤在 `src/steps/` 补充，参数中直接声明所需页面对象：
+2. 缺失的步骤在 `src/test/steps/` 补充，参数中直接声明所需页面对象：
 
 ```ts
 When('我保存个人资料', async ({ profilePage }) => {
@@ -113,7 +120,7 @@ When('我保存个人资料', async ({ profilePage }) => {
 
 ### 组件对象层（设计系统项目必读）
 
-当 `data-testid` 打在组件**宿主**上、真实控件（input/textarea）在内部时，"宿主 → 内部元素"的映射属于组件库知识，必须收口到 `src/pom/components/`，禁止散落在页面对象里：
+当 `data-testid` 打在组件**宿主**上、真实控件（input/textarea）在内部时，"宿主 → 内部元素"的映射属于组件库知识，必须收口到 `src/pages/components/`，禁止散落在页面对象里：
 
 ```ts
 // 页面对象中声明式使用，组件库内部结构变化时只改组件类一处
@@ -211,7 +218,7 @@ flaky 治理流程（retry 是止血不是治病）：
 maker 创建 → checker 审批是**先后**发生的，因此不需要两个同时存活的浏览器会话：
 同一会话内切换角色即可（清 cookie → 以新角色重新登录），
 页面对象只需一套，凭证由 `src/config/users.ts` 按角色解析。
-完整示例见 `features/trade-approval.feature` + `src/steps/trade-approval.steps.ts`：
+完整示例见 `src/test/features/trade-approval.feature` + `src/test/steps/trade-approval.steps.ts`：
 
 ```gherkin
 Given a "FX_TRF" trade has been created via api        # 前置：走 API 造数，不占浏览器
@@ -246,7 +253,7 @@ When(
 
 ### Hooks（Before/After）
 
-位置：`src/steps/hooks.ts`。执行顺序：
+位置：`src/test/steps/hooks.ts`。执行顺序：
 
 ```
 fixture setup → Before hooks → Background → 场景步骤 → After hooks → fixture teardown
@@ -279,7 +286,7 @@ Playwright/config/fixture 承担。hook 只保留两类职责：
 建全局索引时统一校验命名模式、检测跨文件重复（报错并指明两个来源文件），
 文件内重复由 YAML 解析器直接拒绝。
 数据文件用 **YAML**（支持注释记录 case 缘由/ticket、锚点复用公共字段、QA 手写友好）；
-机器生成/消费的数据才用 JSON。建仓的完整示例（`features/create-trade.feature`）：
+机器生成/消费的数据才用 JSON。建仓的完整示例（`src/test/features/create-trade.feature`）：
 
 ```gherkin
 Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
@@ -310,7 +317,7 @@ Scenario: TRADE-004 - Create an FX FBS trade with a full step-in
   参数而非函数——**新增数据种类零新函数**；类型在调用点泛型收口（fixture 的
   `getCase<CreateTradeCase>`、步骤的 `getPreset<CreateTradeCase>('trade_preset', …)`），
   数据形状的类型定义住在各模块的 `<module>-cases.ts`（如 `trade-cases.ts`），
-  通用加载在 `src/utils/case-data.ts`
+  通用加载在 `src/data/case-data.ts`
 - **并行安全**：YAML 是只读输入，`getCase` 返回**深拷贝**——步骤改了数据只影响
   本场景副本，不会经 worker 内共享缓存污染后续场景；运行时产物（tradeId）走
   场景级 `ctx`；需要"每次运行唯一"的输入时在步骤里用 `testInfo.workerIndex`/时间戳派生

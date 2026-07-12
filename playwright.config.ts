@@ -3,9 +3,9 @@ import { defineBddConfig, cucumberReporter } from 'playwright-bdd';
 import { env } from './src/config/env';
 
 const testDir = defineBddConfig({
-  features: 'features/**/*.feature',
-  /* fixtures 必须在 steps pattern 内：playwright-bdd 从中识别导出的 test 实例 */
-  steps: ['src/steps/**/*.ts', 'src/fixtures/**/*.ts'],
+  features: 'src/test/features/**/*.feature',
+  /* fixtures 必须在 steps pattern 内：playwright-bdd 从中识别导出的 test 实例与 hooks */
+  steps: ['src/test/steps/**/*.ts', 'src/fixtures/**/*.ts'],
 });
 
 export default defineConfig({

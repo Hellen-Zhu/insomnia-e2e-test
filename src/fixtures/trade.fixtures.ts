@@ -1,11 +1,11 @@
 import { createBdd } from 'playwright-bdd';
 import { tradePortalTest } from './trade-portal.fixtures';
-import { TradeDetailPage } from '../pom/pages/trade-detail/trade-detail.page';
-import { NewTradePage } from '../pom/pages/new-trade/new-trade.page';
-import { TradeFlow } from '../pom/flows/trade.flow';
+import { TradeDetailPage } from '../pages/trade-detail/trade-detail.page';
+import { NewTradePage } from '../pages/new-trade/new-trade.page';
+import { TradeFlow } from '../flows/trade.flow';
 import { TradeApi } from '../api/trade.api';
-import { caseIdFromTitle, getCase } from '../utils/case-data';
-import { type CreateTradeCase } from '../utils/trade-cases';
+import { caseIdFromTitle, getCase } from '../data/case-data';
+import { type CreateTradeCase } from '../data/trade-cases';
 
 /** 交易域产生的跨步骤数据键（declaration merging 注入基座的 ScenarioData） */
 declare module './base.fixtures' {
