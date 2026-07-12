@@ -427,6 +427,11 @@
           <td class="ours"><span class="chip g">内置 APIRequestContext</span><span class="note">Given ... via api，造数不占浏览器，After 自动清理</span></td>
         </tr>
         <tr>
+          <td>数据库落地验证</td>
+          <td><span class="chip g">支持（JDBC 生态）</span></td>
+          <td class="ours"><span class="chip g">双通道验证</span><span class="note">API 写前置、PostgreSQL 只读通道验证落库；expect.poll 抗异步落库滞后，连接预算每 worker 一条、按需懒建</span></td>
+        </tr>
+        <tr>
           <td>报告体系</td>
           <td><span class="chip g">genie 全家桶原生</span></td>
           <td class="ours"><span class="chip g">双报告</span><span class="note">Playwright HTML（工程师，含 trace）+ Cucumber HTML（业务方）；JUnit XML / Allure 可对接内部平台</span></td>
@@ -464,7 +469,7 @@
         </tr>
         <tr>
           <td>AI 测试工装链</td>
-          <td><span class="chip b">无对应物</span></td>
+          <td><span class="chip b">无对应物</span><span class="note">规则/设计层理论上可自建；但官方执行层 harness 仅随 Node 版发布，且 fork-JVM 迭代开销与无 auto-wait 的 flaky 底噪拖累自主回路</span></td>
           <td class="ours"><span class="chip g">已落地</span><span class="note">user story TDD 生命周期（设计 / 实现两阶段 skill + 4 个定制 agent）：开发交付前产出业务语言验收契约，交付后按层实现——步骤注册表恰好是 AI 的受控词汇菜单，编译期检查是 AI 输出的免费护栏</span></td>
         </tr>
         <tr>
