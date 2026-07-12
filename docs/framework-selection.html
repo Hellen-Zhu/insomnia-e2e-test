@@ -255,6 +255,19 @@
   .cm { color: var(--faint); }
   .kw { color: var(--accent); font-weight: 700; }
 
+  /* ---------- evidence section ---------- */
+  .evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+  @media (max-width: 680px) { .evidence-grid { grid-template-columns: 1fr; } }
+  .evidence { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; display: flex; flex-direction: column; }
+  .evidence h4 { margin: 0 0 6px; font-size: 14.5px; }
+  .evidence p { font-size: 13px; color: var(--muted); margin: 4px 0; max-width: none; }
+  .evidence .e-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .figure-slot {
+    border: 1.5px dashed var(--line-strong); border-radius: 6px; padding: 22px 16px;
+    text-align: center; color: var(--faint); font-size: 12.5px;
+    background: var(--code-bg); margin-top: auto; margin-bottom: 0;
+  }
+
   .footnote { font-size: 12.5px; color: var(--faint); border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px; }
 </style>
 
@@ -263,7 +276,7 @@
 <header class="masthead">
   <div class="kicker">技术选型汇报 · Trade Portal E2E</div>
   <h1>E2E 自动化框架：能力总结、三方案对比与风险对冲</h1>
-  <p class="sub">基于 Playwright Test（TypeScript）+ playwright-bdd 的交易门户 E2E 框架已完成搭建与试点验证。本文总结框架能力，对比公司内部 genie-playwright（Java）与 Python 方案，并正面回答 playwright-bdd 的维护风险问题。</p>
+  <p class="sub">基于 Playwright Test（TypeScript）+ playwright-bdd 的交易门户 E2E 框架已完成搭建，14 条用例已在本地真机全部执行通过。本文总结框架能力，对比公司内部 genie-playwright（Java）与 Python 方案，并正面回答 playwright-bdd 的维护风险问题。</p>
   <div class="meta">
     <span>2026-07</span>
     <span>@playwright/test 1.61</span>
@@ -287,8 +300,8 @@
       </div>
       <div class="verdict-item">
         <div class="v-label">为什么不是另两个</div>
-        <div class="v-head">runner 与协作面差距</div>
-        <p>Java/Python 绑定没有 Playwright Test runner；genie 生态的集成优势可以通过报告桥接获得，runner 能力无法桥接。</p>
+        <div class="v-head">引擎与 runner 差距</div>
+        <p>genie 封装层无自动等待（flaky 主因）、并行靠 fork JVM；其集成优势可通过报告桥接获得，引擎与 runner 差距无法桥接。</p>
       </div>
       <div class="verdict-item">
         <div class="v-label">最大风险</div>
@@ -303,10 +316,10 @@
 <section>
   <div class="eyebrow">01 · 框架能力</div>
   <h2>已落地的框架，不是方案设想</h2>
-  <p>框架已在真实 Trade Portal 页面模型上完成搭建，覆盖登录、建仓（数据驱动 + step-in 变体）、maker-checker 审批（双 UI 入口）与全链路 journey 冒烟，每轮变更经静态验证链（<code>bddgen</code> → <code>tsc</code> → <code>eslint</code> → <code>test --list</code>）把关。</p>
+  <p>框架已在真实 Trade Portal 页面模型上完成搭建，覆盖登录、建仓（数据驱动 + step-in 变体）、maker-checker 审批（双 UI 入口）与全链路 journey 冒烟；<b>全部用例已在本地浏览器实跑通过</b>，每轮变更另经静态验证链（<code>bddgen</code> → <code>tsc</code> → <code>eslint</code> → <code>test --list</code>）把关。</p>
 
   <div class="stats">
-    <div class="stat"><div class="s-num">14</div><div class="s-cap">测试用例 · 4 个 feature</div></div>
+    <div class="stat"><div class="s-num">14</div><div class="s-cap">用例 · 本地实跑全部通过</div></div>
     <div class="stat"><div class="s-num">2 457 <em>行</em></div><div class="s-cap">框架代码（不含生成物）</div></div>
     <div class="stat"><div class="s-num">28</div><div class="s-cap">页面对象 / 组件 / 流程文件</div></div>
     <div class="stat"><div class="s-num">2 <em>分支</em></div><div class="s-cap">BDD 主干 + 原生写法镜像</div></div>
@@ -391,15 +404,21 @@
       </thead>
       <tbody>
         <tr>
-          <td class="dim">测试 runner</td>
+          <td class="dim">等待机制（稳定性根基）</td>
+          <td class="ours"><span class="chip g">自动等待 + web-first 断言</span><span class="note">操作前自动等元素可交互、断言自动重试——flaky 的第一来源在引擎层消灭，全库零显式 sleep</span></td>
+          <td><span class="chip b">无自动等待</span><span class="note">封装层未暴露 auto-wait，用例需手写显式等待 / sleep——flaky 与排查成本的主要来源</span></td>
+          <td><span class="chip g">同原生 Playwright</span></td>
+        </tr>
+        <tr>
+          <td class="dim">测试 runner 与并行</td>
           <td class="ours"><span class="chip g">官方旗舰</span><span class="note">fixtures DI、自动并行 worker、分片、重试、trace、HTML 报告开箱即用</span></td>
-          <td><span class="chip w">自组</span><span class="note">JUnit/TestNG 承担 runner，能力由 genie 封装补齐</span></td>
+          <td><span class="chip w">Cucumber + JUnit</span><span class="note">并行靠 fork JVM 进程——启动与内存开销随并行度线性增长，无 worker 级分片</span></td>
           <td><span class="chip w">pytest</span><span class="note">官方插件提供 fixtures；并行依赖 pytest-xdist</span></td>
         </tr>
         <tr>
           <td class="dim">API 模型</td>
           <td class="ours"><span class="chip g">async · 与前端同构</span></td>
-          <td><span class="chip w">sync 阻塞</span><span class="note">Playwright 实例非线程安全，并行需按线程隔离实例</span></td>
+          <td><span class="chip w">sync 阻塞</span><span class="note">Playwright 实例非线程安全，并行需按进程/线程隔离实例</span></td>
           <td><span class="chip n">sync / async 双轨</span></td>
         </tr>
         <tr>
@@ -411,7 +430,7 @@
         <tr>
           <td class="dim">BDD 方案</td>
           <td class="ours"><span class="chip w">playwright-bdd（个人维护）</span><span class="note">风险与对冲见下节；且为可选层</span></td>
-          <td><span class="chip g">Cucumber-JVM（最成熟）</span><span class="note">SmartBear 官方，genie 若内置则开箱即用</span></td>
+          <td><span class="chip g">Cucumber-JVM（内置）</span><span class="note">SmartBear 官方维护、BDD 生态最成熟——genie 的真优势之一</span></td>
           <td><span class="chip n">pytest-bdd（社区）</span></td>
         </tr>
         <tr>
@@ -440,7 +459,7 @@
         </tr>
         <tr>
           <td class="dim">已验证资产</td>
-          <td class="ours"><span class="chip g">2 457 行 · 14 用例已落地</span></td>
+          <td class="ours"><span class="chip g">2 457 行 · 14 用例本地实跑通过</span></td>
           <td><span class="chip n">生态成熟，本项目需从零建模</span></td>
           <td><span class="chip b">无</span></td>
         </tr>
@@ -449,12 +468,50 @@
   </div>
 
   <h3>对 genie-playwright 的公平结论</h3>
-  <p>genie 的优势集中在<b>集成面</b>（报告、流水线、合规、内部支持团队），这些可以通过标准报告格式桥接部分获得；它的短板集中在 <b>runner 面</b>（Java 绑定无 Playwright Test，sync API 且实例非线程安全，并行与调试体验需生态自建），而 runner 能力无法桥接。对于一个<b>被测系统本身是 TS 前端</b>的项目，同语言协作 + 旗舰 runner 的组合收益大于生态迁移成本——若未来出现被测系统为 Java 服务端为主、或团队完全无 TS 技能的项目，genie 仍是合理默认。</p>
+  <p>genie 的优势集中在<b>集成面</b>（Cucumber-JVM 内置、报告、流水线、合规、内部支持团队），这些可以通过标准报告格式桥接部分获得；它的短板集中在<b>引擎与 runner 面</b>——封装层不支持自动等待，稳定性只能靠显式等待逐处堆出来；并行靠 fork JVM，开销随并行度线性上涨；没有 Playwright Test 的 fixtures 与 trace 体验——<b>这些无法桥接</b>。对于一个被测系统本身是 TS 前端的项目，同语言协作 + 旗舰 runner 的组合收益大于生态迁移成本；若未来是 Java 服务端为主、或团队完全无 TS 技能的项目，genie 仍是合理默认。</p>
+</section>
+
+<!-- ============ 实测对比 ============ -->
+<section>
+  <div class="eyebrow">03 · 实测对比</div>
+  <h2>四组实测数据：同一条业务用例，两个框架</h2>
+  <p>上一节是能力对比，本节用实测数据说话。四组对比的采集口径已固定（同一条业务用例、同一环境），图表数据采集后填入下方占位——第 1、2 组直接量化"无自动等待 + fork JVM 并行"在日常使用中的真实代价。</p>
+
+  <div class="evidence-grid">
+    <div class="evidence">
+      <div class="e-label">对比 1 · 速度</div>
+      <h4>执行耗时与并行扩展性</h4>
+      <p><b>怎么测</b>：同一条用例（建议用建仓）各跑 5 次取中位数，柱状图对比单条耗时；再把整套用例分别在并行度 1 / 2 / 4 下各跑一遍，折线图对比总耗时。</p>
+      <p><b>为什么直观</b>：fork JVM 的进程启动与内存开销随并行度线性增长，Node worker 几乎恒定——并行度越高，两条折线张口越大，一张图讲完。</p>
+      <div class="figure-slot">图表位：单条耗时柱状图 + 并行度 1/2/4 总耗时折线图</div>
+    </div>
+    <div class="evidence">
+      <div class="e-label">对比 2 · 稳定性</div>
+      <h4>显式等待密度（flaky 的代理指标）</h4>
+      <p><b>怎么测</b>：统计 genie 侧同一条用例代码里显式等待 / sleep 的调用次数；本框架为 <b class="num">0</b>（自动等待内建于引擎）。</p>
+      <p><b>为什么直观</b>：一个数字对比，不需要图——每一处显式等待要么是未来的 flaky 点（等短了），要么是纯粹的时间浪费（等长了）。可加一句口径：两边各连跑 20 遍的通过率。</p>
+      <div class="figure-slot">数据位：genie 显式等待 N 处 vs 本框架 0 处（可附连跑 20 遍通过率）</div>
+    </div>
+    <div class="evidence">
+      <div class="e-label">对比 3 · 维护成本</div>
+      <h4>同一条用例的代码量</h4>
+      <p><b>怎么测</b>：同一业务场景在两边的完整实现行数（feature + step + 页面对象），并排截图或柱状图。</p>
+      <p><b>为什么直观</b>：leader 可以亲眼看到两边的用例长什么样——建议直接放两张代码截图并排，Gherkin 的可读性差距不需要解释。</p>
+      <div class="figure-slot">图表位：两侧实现并排截图（或行数柱状图）</div>
+    </div>
+    <div class="evidence">
+      <div class="e-label">对比 4 · 排障效率</div>
+      <h4>同一个失败，各自拿到什么</h4>
+      <p><b>怎么测</b>：人为制造同一个失败（如改错一个 testid），并排展示两边的失败产物——genie 的日志/截图 vs Playwright trace viewer（时间轴、每步 DOM 快照、网络请求）。</p>
+      <p><b>为什么直观</b>：这是四组里最适合<b>现场演示</b>的一组——trace viewer 打开的瞬间效果好于任何静态图。</p>
+      <div class="figure-slot">图表位：两侧失败产物并排截图（现场可改为实机演示）</div>
+    </div>
+  </div>
 </section>
 
 <!-- ============ 风险 ============ -->
 <section>
-  <div class="eyebrow">03 · 风险专题</div>
+  <div class="eyebrow">04 · 风险专题</div>
   <h2>playwright-bdd 是个人维护的，停更了怎么办？</h2>
   <p class="lede">正面回答：这个风险是真实的，我们没有回避它，而是把它<b>架构化</b>了——耦合面被压缩到 21%，退出路径不是纸面方案而是一个持续维护的镜像分支。</p>
 
@@ -508,20 +565,20 @@
 
 <!-- ============ 下一步 ============ -->
 <section>
-  <div class="eyebrow">04 · 决策与下一步</div>
+  <div class="eyebrow">05 · 决策与下一步</div>
   <h2>请求确认的事项与推进节奏</h2>
   <ol>
     <li><b>确认选型</b>：Trade Portal E2E 采用本框架（TS + Playwright Test + playwright-bdd 薄层），genie-playwright 继续作为 Java 侧项目默认。</li>
-    <li><b>真机首跑</b>：当前为静态验证全绿（编译 / lint / 用例枚举），接入测试环境完成浏览器实跑与断言校准（如详情页确认后的跳转行为、状态列值）。</li>
+    <li><b>测试环境与 CI 接入</b>：本地真机已全部跑通；接入共享测试环境，CI 上启用 runner 原生分片并行，<code>@flaky</code> 隔离区不阻塞主流程。</li>
     <li><b>报告桥接</b>：输出 JUnit XML / Allure 兼容格式接入内部报告平台，弥合与 genie 生态的集成差距。</li>
     <li><b>ADO 打通</b>：caseId（<code>TRADE-001</code> 式编号）按设计机械替换为 work item ID，用例与需求双向可追溯。</li>
-    <li><b>CI 接入</b>：利用 runner 原生分片并行；<code>@flaky</code> 隔离区不阻塞主流程。</li>
+    <li><b>实测对比数据</b>：按第 03 节固定的采集口径产出四组对比图表，替换占位。</li>
     <li><b>保险维持</b>：<code>plain-playwright</code> 镜像分支随主干低频同步，作为 BDD 层的常备退出路径。</li>
   </ol>
 </section>
 
 <div class="footnote">
-  数据口径：代码行数与依赖面统计自仓库当前主干（features / src 实测，不含生成物与 node_modules）。对 genie-playwright 的描述基于 Playwright Java 绑定的公开事实与内部生态的一般特征，具体能力以内部文档为准。
+  数据口径：代码行数与依赖面统计自仓库当前主干（features / src 实测，不含生成物与 node_modules）；14 条用例已在本地浏览器实跑通过。genie-playwright 的关键能力描述（Cucumber + JUnit、fork JVM 并行、封装层无自动等待）已按内部实际使用情况核实。
 </div>
 
 </div>
