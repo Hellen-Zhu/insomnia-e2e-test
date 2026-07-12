@@ -197,6 +197,12 @@
     <p class="a">"不是对 genie 的否定，是匹配度问题。genie 给我们的是集成面——Cucumber、报告、流水线，这些我可以通过标准报告格式桥接回去，下一步计划里有这条。但两个引擎级差距桥不过去：一是它的封装不支持自动等待，用例稳定性要靠显式等待一处一处堆，那是 flaky 的最大来源；二是并行靠 fork JVM，进程启动和内存开销随并行度线性涨。我们被测系统本身是 TS 前端，同语言意味着前端同事能直接读懂甚至贡献页面模型。Java 项目我仍然建议默认 genie。"</p>
     <div class="strategy">答案里必须出现<b>"genie 仍是 Java 项目的默认"</b>——姿态是补位不是替代。有实测数据时直接翻到实测对比节。</div>
   </div>
+  <div class="qa">
+    <div class="q">Q1b · 你们的 worker 不也是进程吗？和 fork JVM 有什么本质区别？<span class="prob mid">可能</span></div>
+    <p class="a">"对，Playwright 的并行也是进程模型，这点和 fork JVM 一样——差别在三处。<b>一是每个进程的重量</b>：Node worker 几十兆、毫秒级启动；JVM 每次 fork 数百兆、秒级启动，还要重新 JIT 预热，并行度越高线性差距越大。<b>二是调度</b>：Playwright runner 是用例级动态调度，worker 空了就取下一条，失败重试派到新 worker；fork JVM 是开跑前静态切块，先跑完的等最慢的。<b>三是浏览器复用是设计内建的</b>：worker 里浏览器跨用例复用，每条用例只开一个毫秒级的 context 做 cookie/storage 隔离——贵的资源复用、需要隔离的资源轻量新建，两层是拆开的；fork JVM 模型里这两层绑在一起，每个并行单位都要付全套。至于协程——那是用例内部的 async I/O，管的是单条用例里并发发请求（比如同时造三笔数据），不是并行机制本身。另外补一句：Playwright 的 Java 实例本身非线程安全、API 是同步阻塞的，想用线程代替进程并行会踩雷——这正是 genie 只能 fork JVM 的原因。"</p>
+    <div class="strategy">这题是 Q1 里 fork-JVM 论点被反问时的续篇。<b>先承认"都是进程"</b>再展开三个维度——不承认这一点，后面说什么都像诡辩；承认了，反问反而成了展开真正差异的跳板。</div>
+  </div>
+
 
   <div class="qa">
     <div class="q">Q2 · playwright-bdd 停更了怎么办？<span class="prob high">必问</span></div>
