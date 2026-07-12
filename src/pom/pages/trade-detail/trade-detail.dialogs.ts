@@ -7,9 +7,11 @@ import { TextInput, TextArea } from '../../components/form-field';
  * approve 和 reject 共用同一个弹窗，确认动作收口在这里。
  */
 export class CheckerConfirmDialog extends BaseComponent {
+  private readonly confirmBtn = this.host.getByTestId('trade-detail-checker-confirm-btn');
+
   async confirm(): Promise<void> {
     await this.expectVisible();
-    await this.host.getByTestId('trade-detail-checker-confirm-btn').click();
+    await this.confirmBtn.click();
     await this.expectHidden();
   }
 }
@@ -34,6 +36,7 @@ export class CancelTradeDialog extends BaseComponent {
   private readonly comments = new TextArea(
     this.host.getByTestId('trade-detail-cancel-comments-textarea'),
   );
+  private readonly confirmBtn = this.host.getByTestId('trade-detail-cancel-dialog-confirm-btn');
 
   async cancelWith(details: CancellationDetails): Promise<void> {
     await this.expectVisible();
@@ -42,7 +45,7 @@ export class CancelTradeDialog extends BaseComponent {
     if (details.comments) {
       await this.comments.fill(details.comments);
     }
-    await this.host.getByTestId('trade-detail-cancel-dialog-confirm-btn').click();
+    await this.confirmBtn.click();
     await this.expectHidden();
   }
 

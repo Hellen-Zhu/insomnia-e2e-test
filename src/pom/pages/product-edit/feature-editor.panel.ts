@@ -20,13 +20,20 @@ export class FeatureEditorPanel extends BaseComponent {
   private readonly formulaType = this.host.getByTestId('feature-editor-formula-type-select');
   private readonly cortexFormula = this.host.getByTestId('feature-editor-cortex-formula-select');
   private readonly formula = new TextArea(this.host.getByTestId('feature-editor-formula-textarea'));
+  private readonly saveBtn = this.host.getByTestId('feature-editor-save-btn');
+  private readonly closeBtn = this.host.getByTestId('feature-editor-close-btn');
 
   async expectTitle(text: string): Promise<void> {
     await expect(this.title).toContainText(text);
   }
 
+  /** 分组 tab 按组名参数化（联合类型收口可选集） */
+  private groupBtn(group: FeatureEditorGroup) {
+    return this.host.getByTestId(`feature-editor-group-${group}-btn`);
+  }
+
   async openGroup(group: FeatureEditorGroup): Promise<void> {
-    await this.host.getByTestId(`feature-editor-group-${group}-btn`).click();
+    await this.groupBtn(group).click();
   }
 
   async selectTriggerType(value: string): Promise<void> {
@@ -55,11 +62,11 @@ export class FeatureEditorPanel extends BaseComponent {
   }
 
   async save(): Promise<void> {
-    await this.host.getByTestId('feature-editor-save-btn').click();
+    await this.saveBtn.click();
   }
 
   async close(): Promise<void> {
-    await this.host.getByTestId('feature-editor-close-btn').click();
+    await this.closeBtn.click();
     await this.expectHidden();
   }
 }

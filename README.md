@@ -74,6 +74,18 @@ export class ProfilePage extends BasePage {
 }
 ```
 
+**定位器收口规则**（页面对象的元素清单必须可一眼盘点）：
+
+- **固定元素**一律声明为 `readonly` 字段，集中在类头部；**方法体内禁止构造
+  定位器**（不写 `this.page.getByTestId(...)` 在动作方法里）
+- **真运行时参数化**（`row(text)`、`field(path)`——参数来自运行时数据）：
+  具名私有工厂方法就是它的"定义"，紧挨字段声明区放置
+- **工厂 + 字面量调用**（`btn('save')` 这类参数集合固定的）：每个字面量提升
+  为一个字段，工厂只在字段初始化处使用
+- ⚠️ target ES2022 下**字段初始化器先于构造器体执行**：依赖本类构造参数
+  （如 `viewId`）的定位器必须在构造器体内赋值；引用**父类**参数属性
+  （`this.page` / `this.host`）的初始化器是安全的（super() 期间已赋值）
+
 2. 在所属业务域的 fixtures 文件（`src/fixtures/<domain>.fixtures.ts`）注册一行：
 
 ```ts

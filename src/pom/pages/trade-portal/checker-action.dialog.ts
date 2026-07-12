@@ -6,15 +6,18 @@ import { BaseComponent } from '../../components/base.component';
  * 由 TradePortalPage 持有（页面级，不属于任何 BlotterView）。
  */
 export class CheckerActionDialog extends BaseComponent {
+  private readonly confirmBtn = this.host.getByTestId('checker-action-dialog-confirm-btn');
+  private readonly cancelBtn = this.host.getByTestId('checker-action-dialog-cancel-btn');
+
   /** 确认并等弹窗关闭——关闭断言兼作提交完成的同步点 */
   async confirm(): Promise<void> {
     await this.expectVisible();
-    await this.host.getByTestId('checker-action-dialog-confirm-btn').click();
+    await this.confirmBtn.click();
     await this.expectHidden();
   }
 
   async dismiss(): Promise<void> {
-    await this.host.getByTestId('checker-action-dialog-cancel-btn').click();
+    await this.cancelBtn.click();
     await this.expectHidden();
   }
 }

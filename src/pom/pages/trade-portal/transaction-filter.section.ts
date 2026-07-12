@@ -14,8 +14,13 @@ export class TransactionFilterSection extends BaseComponent {
     await this.searchInput.fill(keyword);
   }
 
+  /** 快捷 tab 按名称参数化（联合类型收口可选集） */
+  private tabBtn(tab: TransactionFilterTab) {
+    return this.host.getByTestId(`transaction-filter-${tab}-btn`);
+  }
+
   async selectTab(tab: TransactionFilterTab): Promise<void> {
-    await this.host.getByTestId(`transaction-filter-${tab}-btn`).click();
+    await this.tabBtn(tab).click();
   }
 
   /* 三个下拉按原生 <select> 实现；若实为自定义组件，改用 components/Combobox */

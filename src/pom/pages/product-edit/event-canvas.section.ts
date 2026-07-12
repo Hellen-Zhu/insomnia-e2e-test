@@ -28,26 +28,24 @@ export class EventCanvasSection extends BaseComponent {
 }
 
 export class CanvasNode {
+  /* 依赖构造参数（eventName），须在构造器体内赋值（字段初始化器先于构造器体执行） */
   private readonly chip: Locator;
+  private readonly editBtn: Locator;
+  private readonly deleteBtn: Locator;
 
-  constructor(
-    private readonly canvas: Locator,
-    private readonly eventName: string,
-  ) {
+  constructor(canvas: Locator, eventName: string) {
     this.chip = canvas.getByTestId(`event-canvas-node-${eventName}-chip`);
-  }
-
-  private btn(action: 'edit' | 'delete'): Locator {
-    return this.canvas.getByTestId(`event-canvas-node-${this.eventName}-${action}-btn`);
+    this.editBtn = canvas.getByTestId(`event-canvas-node-${eventName}-edit-btn`);
+    this.deleteBtn = canvas.getByTestId(`event-canvas-node-${eventName}-delete-btn`);
   }
 
   /** 打开该事件的 feature 编辑器 */
   async edit(): Promise<void> {
-    await this.btn('edit').click();
+    await this.editBtn.click();
   }
 
   async remove(): Promise<void> {
-    await this.btn('delete').click();
+    await this.deleteBtn.click();
     await this.expectAbsent();
   }
 

@@ -18,6 +18,16 @@ export type MarketerRole = 'coverage' | 'execution';
 export class DynamicActionDialog extends BaseComponent {
   private readonly loading = this.host.getByTestId('dynamic-action-loading-state');
   private readonly userInputs = this.host.getByTestId('dynamic-action-user-inputs-container');
+  private readonly confirmBtn = this.host.getByTestId('dynamic-action-confirm-btn');
+  private readonly skipRiskBtn = this.host.getByTestId('dynamic-action-skip-risk-btn');
+  private readonly cancelBtn = this.host.getByTestId('dynamic-action-cancel-btn');
+  /* 名义金额区两个 testid 缺 dynamic-action 前缀，建议反馈前端 */
+  private readonly notionalEquation = this.host.getByTestId(
+    'partial-novation-notional-equation-value',
+  );
+  private readonly notionalSummary = this.host.getByTestId(
+    'partial-novation-notional-summary-container',
+  );
 
   /** 打开后先等动态字段渲染完成（loading 消失、输入区就位）再操作 */
   async waitUntilReady(): Promise<void> {
@@ -52,40 +62,42 @@ export class DynamicActionDialog extends BaseComponent {
   }
 
   /* marketer 成对出现：dynamic-action-{role}-marketer-select + -marketer-pct-input */
+  private marketerSelect(role: MarketerRole) {
+    return this.host.getByTestId(`dynamic-action-${role}-marketer-select`);
+  }
+
+  private marketerPctInput(role: MarketerRole): TextInput {
+    return new TextInput(this.host.getByTestId(`dynamic-action-${role}-marketer-pct-input`));
+  }
+
   async selectMarketer(role: MarketerRole, name: string): Promise<void> {
-    await this.host.getByTestId(`dynamic-action-${role}-marketer-select`).selectOption(name);
+    await this.marketerSelect(role).selectOption(name);
   }
 
   async setMarketerPct(role: MarketerRole, pct: string): Promise<void> {
-    await new TextInput(
-      this.host.getByTestId(`dynamic-action-${role}-marketer-pct-input`),
-    ).fill(pct);
+    await this.marketerPctInput(role).fill(pct);
   }
 
-  /** 部分 novation 的名义金额等式（testid 缺 dynamic-action 前缀，建议反馈前端） */
+  /** 部分 novation 的名义金额等式 */
   async expectNotionalEquation(text: string): Promise<void> {
-    await expect(
-      this.host.getByTestId('partial-novation-notional-equation-value'),
-    ).toContainText(text);
+    await expect(this.notionalEquation).toContainText(text);
   }
 
   async expectNotionalSummaryVisible(): Promise<void> {
-    await expect(
-      this.host.getByTestId('partial-novation-notional-summary-container'),
-    ).toBeVisible();
+    await expect(this.notionalSummary).toBeVisible();
   }
 
   /** 确认后通常接 TradeChangeConfirmationDialog，由 flow 编排后续 */
   async confirm(): Promise<void> {
-    await this.host.getByTestId('dynamic-action-confirm-btn').click();
+    await this.confirmBtn.click();
   }
 
   async skipRisk(): Promise<void> {
-    await this.host.getByTestId('dynamic-action-skip-risk-btn').click();
+    await this.skipRiskBtn.click();
   }
 
   async dismiss(): Promise<void> {
-    await this.host.getByTestId('dynamic-action-cancel-btn').click();
+    await this.cancelBtn.click();
     await this.expectHidden();
   }
 }

@@ -49,35 +49,42 @@ export class TradeDetailPage extends BasePage {
   private readonly actionsContainer = this.page.getByTestId('trade-detail-actions');
   private readonly statusBadge = this.page.getByTestId('trade-detail-status-badge');
 
+  /* 动作按钮统一走 trade-detail-{name}-btn 命名模式，按字面量提升为字段 */
   private btn(name: string) {
     return this.page.getByTestId(`trade-detail-${name}-btn`);
   }
+  private readonly saveBtn = this.btn('save');
+  private readonly skipRiskBtn = this.btn('skip-risk');
+  private readonly cancelBtn = this.btn('cancel');
+  private readonly approveBtn = this.btn('approve');
+  private readonly rejectBtn = this.btn('reject');
+  private readonly backBtn = this.page.getByTestId('trade-detail-page-back-btn');
 
   /* ---------- maker 动作 ---------- */
 
   async save(): Promise<void> {
-    await this.btn('save').click();
+    await this.saveBtn.click();
   }
 
   async skipRiskCheck(): Promise<void> {
-    await this.btn('skip-risk').click();
+    await this.skipRiskBtn.click();
   }
 
   /** 打开取消弹窗并完成整个取消流程 */
   async cancelTrade(details: CancellationDetails): Promise<void> {
-    await this.btn('cancel').click();
+    await this.cancelBtn.click();
     await this.cancelDialog.cancelWith(details);
   }
 
   /* ---------- checker 动作（approve/reject 共用确认弹窗） ---------- */
 
   async approve(): Promise<void> {
-    await this.btn('approve').click();
+    await this.approveBtn.click();
     await this.checkerDialog.confirm();
   }
 
   async reject(): Promise<void> {
-    await this.btn('reject').click();
+    await this.rejectBtn.click();
     await this.checkerDialog.confirm();
   }
 
@@ -93,7 +100,7 @@ export class TradeDetailPage extends BasePage {
   }
 
   async goBack(): Promise<void> {
-    await this.page.getByTestId('trade-detail-page-back-btn').click();
+    await this.backBtn.click();
   }
 
   async expectStatus(status: string): Promise<void> {
@@ -104,7 +111,5 @@ export class TradeDetailPage extends BasePage {
    * 日期展示单元格。原清单用 CSS（p.text-lg）定位——依赖 Tailwind
    * 类名，样式一改就碎。此处保留等价实现，建议让前端补 testid。
    */
-  dateCells() {
-    return this.container.locator('p.text-lg');
-  }
+  readonly dateCells = this.container.locator('p.text-lg');
 }

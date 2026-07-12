@@ -14,9 +14,14 @@ class StepInSection extends BaseComponent {
     this.host.getByTestId('create-trade-old-counterparty-combobox'),
   );
 
+  /** 单选项按模式参数化（mode 来自用例数据） */
+  private modeRadio(mode: StepInMode) {
+    return this.host.getByTestId(`create-trade-stepin-${mode}-radio`);
+  }
+
   /* testid 在单选项宿主上，用 click 而非 check（check 要求原生 input） */
   async choose(mode: StepInMode, oldCounterpartyName: string): Promise<void> {
-    await this.host.getByTestId(`create-trade-stepin-${mode}-radio`).click();
+    await this.modeRadio(mode).click();
     await this.oldCounterparty.select(oldCounterpartyName);
   }
 }
@@ -44,9 +49,12 @@ export class NewTradePage extends BasePage {
     this.page.getByTestId('create-trade-stepin-container'),
   );
 
+  /* 动作按钮统一走 create-trade-{name}-btn 命名模式，此处按字面量提升为字段 */
   private btn(name: string) {
     return this.page.getByTestId(`create-trade-${name}-btn`);
   }
+  private readonly saveBtn = this.btn('save');
+  private readonly skipRiskBtn = this.btn('skip-risk');
 
   /** 若 testid 打在包装元素而非 <input type=file> 上，改为 .locator('input[type=file]') */
   async uploadTradeFile(filePath: string): Promise<void> {
@@ -69,7 +77,7 @@ export class NewTradePage extends BasePage {
   }
 
   async save(): Promise<void> {
-    await this.btn('save').click();
+    await this.saveBtn.click();
   }
 
   /**
@@ -84,12 +92,12 @@ export class NewTradePage extends BasePage {
         response.url().includes('/api/v1/trades/create') &&
         response.ok(),
     );
-    await this.btn('save').click();
+    await this.saveBtn.click();
     const body = (await (await responsePromise).json()) as { data: { trade: { id: string } } };
     return body.data.trade.id;
   }
 
   async skipRiskCheck(): Promise<void> {
-    await this.btn('skip-risk').click();
+    await this.skipRiskBtn.click();
   }
 }

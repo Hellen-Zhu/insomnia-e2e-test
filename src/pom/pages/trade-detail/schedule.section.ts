@@ -18,30 +18,30 @@ export class ScheduleSection extends BaseComponent {
 }
 
 export class ScheduleRow {
-  constructor(
-    private readonly section: Locator,
-    private readonly index: number,
-  ) {}
+  /* 依赖构造参数（index），须在构造器体内赋值（字段初始化器先于构造器体执行） */
+  private readonly notional: TextInput;
+  private readonly date: TextInput;
 
-  private input(field: ScheduleField): TextInput {
-    return new TextInput(
-      this.section.getByTestId(`trade-detail-schedule-row-event-${this.index}-${field}-input`),
-    );
+  constructor(section: Locator, index: number) {
+    const input = (field: ScheduleField) =>
+      new TextInput(section.getByTestId(`trade-detail-schedule-row-event-${index}-${field}-input`));
+    this.notional = input('notional');
+    this.date = input('date');
   }
 
   async setNotional(value: string): Promise<void> {
-    await this.input('notional').fill(value);
+    await this.notional.fill(value);
   }
 
   async setDate(value: string): Promise<void> {
-    await this.input('date').fill(value);
+    await this.date.fill(value);
   }
 
   async expectNotional(value: string): Promise<void> {
-    await this.input('notional').expectValue(value);
+    await this.notional.expectValue(value);
   }
 
   async expectDate(value: string): Promise<void> {
-    await this.input('date').expectValue(value);
+    await this.date.expectValue(value);
   }
 }

@@ -15,6 +15,15 @@ export class SchemaUploadPanel extends BaseComponent {
     this.host.getByTestId('schema-change-summary-input'),
   );
   private readonly versionWarning = this.host.getByTestId('schema-version-exists-warning');
+  private readonly previewBtn = this.host.getByTestId('schema-upload-preview-btn');
+  private readonly extractedFieldsPreviewBtn = this.host.getByTestId(
+    'schema-extracted-fields-preview-btn',
+  );
+  private readonly confirmSaveBtn = this.host.getByTestId('schema-confirm-save-btn');
+  private readonly cancelBtn = this.host.getByTestId('schema-cancel-btn');
+  private readonly successMessage = this.host.getByTestId('schema-upload-success');
+  private readonly overrideConfirmBtn = this.host.getByTestId('schema-override-confirm-btn');
+  private readonly overrideCancelBtn = this.host.getByTestId('schema-override-cancel-btn');
 
   /** 若 testid 打在包装元素而非 <input type=file> 上，改为 .locator('input[type=file]') */
   async chooseSchemaFile(filePath: string): Promise<void> {
@@ -23,25 +32,25 @@ export class SchemaUploadPanel extends BaseComponent {
 
   /** 预览并等解析结果出现（解析是异步的，parsed-info 兼作同步点） */
   async preview(): Promise<void> {
-    await this.host.getByTestId('schema-upload-preview-btn').click();
+    await this.previewBtn.click();
     await expect(this.parsedInfo).toBeVisible();
   }
 
   async openExtractedFieldsPreview(): Promise<void> {
-    await this.host.getByTestId('schema-extracted-fields-preview-btn').click();
+    await this.extractedFieldsPreviewBtn.click();
   }
 
   async saveWithSummary(summary: string): Promise<void> {
     await this.changeSummary.fill(summary);
-    await this.host.getByTestId('schema-confirm-save-btn').click();
+    await this.confirmSaveBtn.click();
   }
 
   async cancel(): Promise<void> {
-    await this.host.getByTestId('schema-cancel-btn').click();
+    await this.cancelBtn.click();
   }
 
   async expectSuccess(): Promise<void> {
-    await expect(this.host.getByTestId('schema-upload-success')).toBeVisible();
+    await expect(this.successMessage).toBeVisible();
   }
 
   async expectVersionExistsWarning(): Promise<void> {
@@ -49,11 +58,11 @@ export class SchemaUploadPanel extends BaseComponent {
   }
 
   async confirmOverride(): Promise<void> {
-    await this.host.getByTestId('schema-override-confirm-btn').click();
+    await this.overrideConfirmBtn.click();
   }
 
   async cancelOverride(): Promise<void> {
-    await this.host.getByTestId('schema-override-cancel-btn').click();
+    await this.overrideCancelBtn.click();
   }
 }
 

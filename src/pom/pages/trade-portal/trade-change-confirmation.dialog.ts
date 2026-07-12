@@ -23,6 +23,10 @@ export class TradeChangeConfirmationDialog extends BaseComponent {
     this.host.getByTestId('trade-change-comments-textarea'),
   );
   private readonly diffList = this.host.getByTestId('trade-change-diff-list');
+  private readonly confirmBtn = this.host.getByTestId('trade-change-confirm-btn');
+  private readonly cancelBtn = this.host.getByTestId('trade-change-cancel-btn');
+  /* novation 对比区 testid 缺 trade-change 前缀（novation-*），建议反馈前端 */
+  private readonly novationSplitLayout = this.host.getByTestId('novation-split-layout');
 
   /** 通用 diff 行：trade-change-diff-item-{index} */
   diffItem(index: number): Locator {
@@ -41,24 +45,28 @@ export class TradeChangeConfirmationDialog extends BaseComponent {
     if (details.comments) {
       await this.comments.fill(details.comments);
     }
-    await this.host.getByTestId('trade-change-confirm-btn').click();
+    await this.confirmBtn.click();
     await this.expectHidden();
   }
 
   async dismiss(): Promise<void> {
-    await this.host.getByTestId('trade-change-cancel-btn').click();
+    await this.cancelBtn.click();
     await this.expectHidden();
   }
 
   /* ---------- novation 专属对比区 ---------- */
 
   async expectNovationSplitLayout(): Promise<void> {
-    await expect(this.host.getByTestId('novation-split-layout')).toBeVisible();
+    await expect(this.novationSplitLayout).toBeVisible();
   }
 
   /** PnL 汇总：novation-{original|combined|delta}-pnl */
+  private novationPnl(kind: NovationPnlKind) {
+    return this.host.getByTestId(`novation-${kind}-pnl`);
+  }
+
   async expectNovationPnl(kind: NovationPnlKind, value: string): Promise<void> {
-    await expect(this.host.getByTestId(`novation-${kind}-pnl`)).toContainText(value);
+    await expect(this.novationPnl(kind)).toContainText(value);
   }
 
   /** 双栏 diff 行：novation-{original|new}-trade-diff-item-{index} */

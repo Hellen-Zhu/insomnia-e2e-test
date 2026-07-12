@@ -22,6 +22,11 @@ export class ProductEditPage extends BasePage {
   private readonly basicInfoCard = this.page.getByTestId('product-detail-form-basic-info-card');
   /* testid 缺 product 前缀（field-description），建议随其他命名问题一起反馈前端 */
   private readonly description = new TextArea(this.page.getByTestId('field-description'));
+  private readonly editFieldsBtn = this.page.getByTestId('product-detail-edit-fields-button');
+  private readonly schemaHistoryBtn = this.page.getByTestId('product-schema-history-btn');
+  private readonly saveBtn = this.page.getByTestId('product-save-btn');
+  /** 清单中命名为 back，实际 testid 是 product-cancel-btn */
+  private readonly cancelBtn = this.page.getByTestId('product-cancel-btn');
 
   readonly canvas = new EventCanvasSection(this.page.getByTestId('event-canvas-drop-area'));
   readonly featureEditor = new FeatureEditorPanel(
@@ -46,21 +51,20 @@ export class ProductEditPage extends BasePage {
 
   /** 打开提取字段编辑弹窗 */
   async openFieldsEditor(): Promise<void> {
-    await this.page.getByTestId('product-detail-edit-fields-button').click();
+    await this.editFieldsBtn.click();
     await this.extractedFields.expectVisible();
   }
 
   async openSchemaHistory(): Promise<void> {
-    await this.page.getByTestId('product-schema-history-btn').click();
+    await this.schemaHistoryBtn.click();
     await this.schemaHistory.expectVisible();
   }
 
   async save(): Promise<void> {
-    await this.page.getByTestId('product-save-btn').click();
+    await this.saveBtn.click();
   }
 
-  /** 清单中命名为 back，实际 testid 是 product-cancel-btn */
   async cancel(): Promise<void> {
-    await this.page.getByTestId('product-cancel-btn').click();
+    await this.cancelBtn.click();
   }
 }
