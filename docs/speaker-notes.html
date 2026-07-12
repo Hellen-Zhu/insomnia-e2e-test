@@ -202,6 +202,12 @@
     <div class="q">Q2 · playwright-bdd 停更了怎么办？<span class="prob high">必问</span></div>
     <p class="a">"三层兜底。第一层，它是构建期的代码生成器，跑起来的就是纯 Playwright 测试，锁定版本可以稳定用以年计；第二层，架构上耦合面压到了 21%，八成的代码不知道它存在；第三层是实证——我们维护着一个不用它的镜像分支，同样的用例原生写法跑通了，真要退出，改的就是五百行接线层。"</p>
   </div>
+  <div class="qa">
+    <div class="q">Q2b · 除了退回原生，还有别的退路吗？能不能我们自己维护它？<span class="prob mid">可能</span></div>
+    <p class="a">"有，退路完整说是一个<b>四级阶梯</b>，一级比一级动作大。第一级，版本锁定——它是构建期工具，锁住版本可以稳定用以年计，期间什么都不用做。第二级，fork 自维护——它是 MIT 协议的 TypeScript 项目，法律上随意 fork；关键是我们要维护的面很窄：全仓对它的使用清单只有八项，真正脆弱的只有它对 Playwright 内部配置加载的兼容层，Playwright 大版本升级时可能要补一次，量级是天不是月。而且它是构建期工具，坏了编译立刻红，<b>不存在运行时静默出错</b>——自维护一个'坏了会大声喊'的工具，风险可控。第三级，退到 Cucumber.js——SmartBear 官方维护：Gherkin 文本逐字保留、步骤匹配串原样搬（两边用的是同一套 cucumber-expressions），丢的是 Playwright runner 的 fixtures 和调试集成；<b>自动等待不丢</b>，它是引擎能力不是 runner 能力。第四级，退回原生 Playwright——保住全部 runner 能力，Gherkin 降级为 step 标题，这条已经用镜像分支演练过。四级动的都是同一份五百行接线层，79% 的代码在任何一级都原样不动。<b>选哪级，取决于当时为什么要退。</b>"</p>
+    <div class="strategy">fork 选项<b>主动讲</b>会加分——它把"个人维护"从威胁翻转成"最坏情况我们接得住"。两个必须点到的词：<b>MIT</b>（法律干净）、<b>构建期失败是响的</b>（自维护安全的根据）。Cucumber 一问参见此卡第三级，不必单独展开代价细节：代码面与原生退路同量级（~500 行），只是保留/丢弃的东西相反。</div>
+  </div>
+
 
   <div class="qa">
     <div class="q">Q3 · genie 底层不也是 Playwright？你说的差距从哪来？<span class="prob high">大概率</span></div>
