@@ -1,0 +1,806 @@
+<title>E2E Test Framework Selection</title>
+<style>
+  :root {
+    --bg: #f4f7f7;
+    --surface: #ffffff;
+    --ink: #16292e;
+    --muted: #5a6e74;
+    --faint: #8ba0a5;
+    --accent: #0b7285;
+    --accent-ink: #ffffff;
+    --accent-tint: #e3f0f2;
+    --line: #dbe4e5;
+    --line-strong: #b9c9cc;
+    --good: #1a7f4f;
+    --good-tint: #e2f2e9;
+    --warn: #a06514;
+    --warn-tint: #f7edda;
+    --bad: #b3402f;
+    --bad-tint: #f8e6e2;
+    --code-bg: #eef3f4;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+      "Noto Sans CJK SC", "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1517;
+      --surface: #131f22;
+      --ink: #e2eced;
+      --muted: #93a9ae;
+      --faint: #6d8288;
+      --accent: #45b8cc;
+      --accent-ink: #06272e;
+      --accent-tint: #12333a;
+      --line: #24363a;
+      --line-strong: #3a5157;
+      --good: #4cc38a;
+      --good-tint: #10301f;
+      --warn: #d9a53f;
+      --warn-tint: #33270e;
+      --bad: #e07a5f;
+      --bad-tint: #371711;
+      --code-bg: #0f1a1d;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f4f7f7;
+    --surface: #ffffff;
+    --ink: #16292e;
+    --muted: #5a6e74;
+    --faint: #8ba0a5;
+    --accent: #0b7285;
+    --accent-ink: #ffffff;
+    --accent-tint: #e3f0f2;
+    --line: #dbe4e5;
+    --line-strong: #b9c9cc;
+    --good: #1a7f4f;
+    --good-tint: #e2f2e9;
+    --warn: #a06514;
+    --warn-tint: #f7edda;
+    --bad: #b3402f;
+    --bad-tint: #f8e6e2;
+    --code-bg: #eef3f4;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1517;
+    --surface: #131f22;
+    --ink: #e2ecED;
+    --muted: #93a9ae;
+    --faint: #6d8288;
+    --accent: #45b8cc;
+    --accent-ink: #06272e;
+    --accent-tint: #12333a;
+    --line: #24363a;
+    --line-strong: #3a5157;
+    --good: #4cc38a;
+    --good-tint: #10301f;
+    --warn: #d9a53f;
+    --warn-tint: #33270e;
+    --bad: #e07a5f;
+    --bad-tint: #371711;
+    --code-bg: #0f1a1d;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .page { max-width: 880px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  a { color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  code {
+    font-family: var(--mono);
+    font-size: 0.87em;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  /* ---------- masthead ---------- */
+  .masthead { padding-bottom: 28px; border-bottom: 2px solid var(--ink); margin-bottom: 40px; }
+  .masthead .kicker {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin-bottom: 14px;
+  }
+  h1 {
+    font-size: 30px; line-height: 1.35; margin: 0 0 10px; font-weight: 700;
+    text-wrap: balance; letter-spacing: 0.01em;
+  }
+  .masthead .sub { color: var(--muted); margin: 0; max-width: 44em; }
+  .masthead .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 22px; margin-top: 18px;
+    font-size: 12.5px; color: var(--faint); font-family: var(--mono);
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 56px; }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); font-weight: 700; margin-bottom: 6px;
+  }
+  h2 { font-size: 21px; margin: 0 0 14px; line-height: 1.4; text-wrap: balance; }
+  h3 { font-size: 16px; margin: 26px 0 8px; }
+  p { margin: 10px 0; max-width: 46em; }
+  .lede { font-size: 16px; }
+  ul, ol { padding-left: 1.4em; max-width: 44em; }
+  li { margin: 6px 0; }
+  li::marker { color: var(--accent); }
+
+  /* ---------- TL;DR ---------- */
+  .verdict {
+    background: var(--surface); border: 1px solid var(--line);
+    border-left: 4px solid var(--accent); border-radius: 6px;
+    padding: 22px 26px; margin-top: 18px;
+  }
+  .verdict-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  @media (max-width: 680px) { .verdict-grid { grid-template-columns: 1fr; } }
+  .verdict-item.wide { grid-column: 1 / -1; border-top: 1px solid var(--line); padding-top: 18px; }
+  .verdict-item .v-label {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--faint); font-weight: 700; margin-bottom: 6px;
+  }
+  .verdict-item .v-head { font-weight: 700; margin-bottom: 4px; }
+  .verdict-item p { font-size: 13.5px; color: var(--muted); margin: 0; }
+
+  /* ---------- stat strip ---------- */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0 6px; }
+  @media (max-width: 680px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .stat .s-num { font-family: var(--mono); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .s-num em { font-style: normal; font-size: 13px; color: var(--faint); font-weight: 400; }
+  .stat .s-cap { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+
+  /* ---------- architecture diagram ---------- */
+  .arch { display: grid; grid-template-columns: 1fr 190px; gap: 0 18px; margin: 22px 0; }
+  @media (max-width: 680px) { .arch { grid-template-columns: 1fr; } .arch-side { display: none; } }
+  .arch-stack { display: flex; flex-direction: column; gap: 6px; }
+  .layer {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 10px 16px; display: flex; align-items: baseline; gap: 14px;
+  }
+  .layer .l-name { font-family: var(--mono); font-size: 13px; font-weight: 700; min-width: 118px; }
+  .layer .l-desc { font-size: 13px; color: var(--muted); }
+  .layer .l-loc { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .layer.coupled { border-left: 3px solid var(--warn); }
+  .layer.agnostic { border-left: 3px solid var(--good); }
+  .arch-side { display: flex; flex-direction: column; gap: 6px; font-size: 12.5px; }
+  .brace {
+    border: 1px dashed var(--line-strong); border-left: none; border-radius: 0 8px 8px 0;
+    padding: 8px 12px; color: var(--muted); display: flex; flex-direction: column; justify-content: center;
+  }
+  .brace.b-coupled { flex: 0 0 auto; height: 138px; }
+  .brace.b-agnostic { flex: 1; }
+  .brace b { color: var(--ink); }
+  .brace .pct { font-family: var(--mono); font-size: 18px; font-weight: 700; }
+  .b-coupled .pct { color: var(--warn); }
+  .b-agnostic .pct { color: var(--good); }
+
+  /* ---------- dependency bar ---------- */
+  .depbar { margin: 18px 0 8px; }
+  .depbar .bar { display: flex; height: 26px; border-radius: 5px; overflow: hidden; border: 1px solid var(--line); }
+  .depbar .seg-a { background: var(--good); flex: 0 0 79%; }
+  .depbar .seg-b { background: var(--warn); flex: 1; }
+  .depbar .legend { display: flex; gap: 26px; margin-top: 8px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; vertical-align: baseline; }
+
+  /* ---------- feature grid ---------- */
+  .features { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+  @media (max-width: 680px) { .features { grid-template-columns: 1fr; } }
+  .feature {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 16px 18px;
+  }
+  .feature h4 { margin: 0 0 6px; font-size: 14.5px; }
+  .feature p { font-size: 13px; color: var(--muted); margin: 0; }
+  .feature code { font-size: 0.85em; }
+
+  /* ---------- tables ---------- */
+  .tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); margin-top: 18px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); }
+  tr:last-child td { border-bottom: none; }
+  thead th {
+    font-size: 12px; letter-spacing: 0.06em; color: var(--muted);
+    background: var(--code-bg); font-weight: 700; white-space: nowrap;
+  }
+  td.dim { font-weight: 700; white-space: nowrap; }
+  .compare col.ours { }
+  .compare td.ours, .compare th.ours { background: var(--accent-tint); }
+  .compare th.ours { color: var(--accent); }
+  td .note { display: block; color: var(--muted); font-size: 12.5px; margin-top: 2px; }
+  .tablecap { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+  .chip {
+    display: inline-block; font-size: 12px; font-weight: 700; border-radius: 4px;
+    padding: 1px 8px; line-height: 1.6; white-space: nowrap;
+  }
+  .chip.g { background: var(--good-tint); color: var(--good); }
+  .chip.w { background: var(--warn-tint); color: var(--warn); }
+  .chip.b { background: var(--bad-tint); color: var(--bad); }
+  .chip.n { background: var(--code-bg); color: var(--muted); }
+
+  /* ---------- risk ladder ---------- */
+  .ladder { display: flex; flex-direction: column; gap: 12px; margin-top: 18px; counter-reset: rung; }
+  .rung {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 6px;
+    padding: 16px 18px 16px 58px; position: relative;
+  }
+  .rung::before {
+    counter-increment: rung; content: counter(rung);
+    position: absolute; left: 18px; top: 16px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink);
+    font-family: var(--mono); font-size: 13px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rung h4 { margin: 0 0 4px; font-size: 14.5px; }
+  .rung p { font-size: 13.5px; color: var(--muted); margin: 0; max-width: none; }
+
+  /* ---------- code block ---------- */
+  pre {
+    background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+    padding: 14px 18px; overflow-x: auto; font-family: var(--mono);
+    font-size: 12.5px; line-height: 1.7; margin: 14px 0;
+  }
+  pre code { background: none; padding: 0; }
+  .cm { color: var(--faint); }
+  .kw { color: var(--accent); font-weight: 700; }
+
+  /* ---------- evidence section ---------- */
+  .evidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 18px; }
+  @media (max-width: 680px) { .evidence-grid { grid-template-columns: 1fr; } }
+  .evidence { background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 16px 18px; display: flex; flex-direction: column; }
+  .evidence h4 { margin: 0 0 6px; font-size: 14.5px; }
+  .evidence p { font-size: 13px; color: var(--muted); margin: 4px 0; max-width: none; }
+  .evidence .e-label { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); font-weight: 700; }
+  .figure-slot {
+    border: 1.5px dashed var(--line-strong); border-radius: 6px; padding: 22px 16px;
+    text-align: center; color: var(--faint); font-size: 12.5px;
+    background: var(--code-bg); margin-top: auto; margin-bottom: 0;
+  }
+
+  .footnote { font-size: 12.5px; color: var(--faint); border-top: 1px solid var(--line); margin-top: 56px; padding-top: 16px; }
+</style>
+
+<div class="page">
+
+<header class="masthead">
+  <div class="kicker">Technical Selection Report · Trade Portal E2E</div>
+  <h1>E2E Automation Framework: Capabilities, Three-Way Comparison, and Risk Hedging</h1>
+  <p class="sub">The trade-portal E2E framework built on Playwright Test (TypeScript) + playwright-bdd is up and running: all 14 test cases pass locally against the real application. This report summarizes what the framework can do, compares it with the other Playwright stacks the company maintains — the Java genie suite our team uses today and the pytest-based Python variant — and answers the playwright-bdd maintenance-risk question head-on.</p>
+  <div class="meta">
+    <span>2026-07</span>
+    <span>@playwright/test 1.61</span>
+    <span>playwright-bdd 9.2</span>
+    <span>TypeScript 6.0</span>
+    <span>repo: insomnia-e2e-test</span>
+  </div>
+</header>
+
+<!-- ============ TL;DR ============ -->
+<section>
+  <div class="eyebrow">Conclusion first</div>
+  <h2>The one-line recommendation</h2>
+  <p class="lede">Use <b>TypeScript + Playwright Test</b> for Trade Portal E2E: same language as the frontend under test, exclusive access to the official flagship runner (fixture DI, automatic parallelism, traces, UI Mode) and to the AI tooling roadmap; the BDD layer (playwright-bdd) comes in as a <b>pluggable thin layer</b>, its maintenance risk hedged by architectural isolation and a field-tested exit path.</p>
+  <div class="verdict">
+    <div class="verdict-grid">
+      <div class="verdict-item">
+        <div class="v-label">What we recommend</div>
+        <div class="v-head">TS + Playwright Test</div>
+        <p>The officially first-class language binding with the fullest runner; BDD is an optional thin layer that decouples business language from implementation.</p>
+      </div>
+      <div class="verdict-item">
+        <div class="v-label">Why not the other two</div>
+        <div class="v-head">Engine and runner gap</div>
+        <p>The genie wrapper integrates Playwright but not its auto-waiting — waits are hand-written and hand-maintained in test code — and it parallelizes by forking JVMs. Its integration advantages can be bridged via reports — the company's own TS + genie report variant already proves that bridge; the engine and runner gap cannot.</p>
+      </div>
+      <div class="verdict-item">
+        <div class="v-label">Biggest risk</div>
+        <div class="v-head">playwright-bdd is solo-maintained</div>
+        <p>The coupling surface is only 21% of the code, and a BDD-free mirror branch proves the exit path — the risk is quantified and reversible.</p>
+      </div>
+      <div class="verdict-item wide">
+        <div class="v-label">ROI at a glance</div>
+        <div class="v-head">The build cost is already sunk — what you are approving is the marginal cost</div>
+        <p>The whole framework took <b>one engineer 6 calendar days</b> (git history, 55 commits). From here, a test case built from the existing vocabulary costs Gherkin lines plus a YAML block — the end-to-end journey smoke was added with <b>zero new step definitions</b>. Details and the honest cost side in section 04.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ Capabilities ============ -->
+<section>
+  <div class="eyebrow">01 · Capabilities</div>
+  <h2>A running framework, not a proposal</h2>
+  <p>The framework is built against the real Trade Portal page models, covering login, trade creation (data-driven, with step-in variants), maker–checker approval (both UI entry points), and an end-to-end journey smoke; <b>every case has passed in a real local browser run</b>, with each change also gated by the static verification chain (<code>bddgen</code> → <code>tsc</code> → <code>eslint</code> → <code>test --list</code>).</p>
+
+  <div class="stats">
+    <div class="stat"><div class="s-num">14</div><div class="s-cap">cases · all passing in local runs</div></div>
+    <div class="stat"><div class="s-num">2,457 <em>LOC</em></div><div class="s-cap">framework code (generated output excluded)</div></div>
+    <div class="stat"><div class="s-num">28</div><div class="s-cap">page object / component / flow files</div></div>
+    <div class="stat"><div class="s-num">2 <em>branches</em></div><div class="s-cap">BDD mainline + plain-Playwright mirror</div></div>
+  </div>
+
+  <h3>Layered architecture: one-way dependency from business language down to Locators</h3>
+  <div class="arch">
+    <div class="arch-stack">
+      <div class="layer coupled"><span class="l-name">test/features/</span><span class="l-desc">Gherkin business language (BA-readable, governed by a six-rule vocabulary)</span><span class="l-loc num">118 LOC</span></div>
+      <div class="layer coupled"><span class="l-name">test/steps/</span><span class="l-desc">wiring layer: maps business phrases to flow calls, no logic</span><span class="l-loc num">214 LOC</span></div>
+      <div class="layer coupled"><span class="l-name">fixtures/</span><span class="l-desc">dependency injection: base → tradePortal → {trade, product} inheritance tree</span><span class="l-loc num">179 LOC</span></div>
+      <div class="layer agnostic"><span class="l-name">pages/ + flows/</span><span class="l-desc">pages (incl. components) is the only layer allowed to hold Locators; flows are locator-free</span><span class="l-loc num">1,552 LOC</span></div>
+      <div class="layer agnostic"><span class="l-name">api/</span><span class="l-desc">API data seeding (preconditions without a browser)</span><span class="l-loc num">97 LOC</span></div>
+      <div class="layer agnostic"><span class="l-name">test-data/ + data/</span><span class="l-desc">YAML case library + global data index + config</span><span class="l-loc num">297 LOC</span></div>
+    </div>
+    <div class="arch-side">
+      <div class="brace b-coupled"><span class="pct">21%</span><span><b>playwright-bdd coupling surface</b><br>511 LOC, replaceable wholesale</span></div>
+      <div class="brace b-agnostic"><span class="pct">79%</span><span><b>framework-agnostic assets</b><br>1,946 LOC, survive any runner unchanged</span></div>
+    </div>
+  </div>
+
+  <h3>Eight core capabilities</h3>
+  <div class="features">
+    <div class="feature">
+      <h4>Business-language discipline (six-rule vocabulary)</h4>
+      <p>Business states are closed phrases, not parameters (e.g. <code>the trade is approved and marked as new</code> — verdict × status locked in two dimensions); off-vocabulary wording fails compilation outright, so the vocabulary cannot drift silently. Codified in <code>docs/gherkin-style.md</code>.</p>
+    </div>
+    <div class="feature">
+      <h4>Three-tier data-driven design</h4>
+      <p>caseIds in scenario titles bind YAML cases; a lazily built global index with namespaces (<code>cases</code> / <code>*_preset</code>) fails the build on duplicate keys and typos across files; deep-copied reads keep parallel workers safe. caseIds can later be swapped mechanically for ADO work item IDs.</p>
+    </div>
+    <div class="feature">
+      <h4>POM discipline: Locator containment</h4>
+      <p>Fixed elements are <code>readonly</code> class-head fields — zero Locator construction in method bodies; runtime parameterization goes through named factories. The element inventory can be reviewed line-by-line against the frontend testid list.</p>
+    </div>
+    <div class="feature">
+      <h4>Component layer (design-system mapping)</h4>
+      <p>When the testid sits on a component host and the real control lives inside, the host → internals mapping is contained in <code>components/</code> — internal component-library changes touch exactly one place.</p>
+    </div>
+    <div class="feature">
+      <h4>Multi-role switching in one session</h4>
+      <p>Maker creates → checker approves within a single browser session (clear cookies, re-login); business artifacts flow across roles through a scenario-scoped context — no dual-session overhead.</p>
+    </div>
+    <div class="feature">
+      <h4>API seeding + test-granularity philosophy</h4>
+      <p>"E2E is a suite-level property": approval cases isolate the behavior under test via API seeding, so a failure localizes itself; the API/UI seeding equivalence gap is sealed by a single <code>@journey</code> end-to-end smoke rather than a padded matrix.</p>
+    </div>
+    <div class="feature">
+      <h4>Engineering and stability practices</h4>
+      <p>Per-environment env injection (secrets never enter the repo); flaky cases surface in reports (flagged yellow) → reproduce with <code>--repeat-each</code> → fix the root cause → quarantine under <code>@flaky</code> without blocking merges.</p>
+    </div>
+    <div class="feature">
+      <h4>AI-toolchain ready</h4>
+      <p>The repo ships the Playwright Test Agents scaffold (planner / generator / healer) — the official AI capabilities for test planning, generation, and self-healing currently evolve on the Node side only.</p>
+    </div>
+  </div>
+
+  <h3>Reports as documentation: what a business-readable case looks like</h3>
+<pre><code><span class="kw">Scenario:</span> TRADE-103 - Checker approves a pending trade from the trade details page
+  <span class="kw">Given</span> a "FX_TRF" trade has been created via api          <span class="cm"># API seeding, no browser needed</span>
+  <span class="kw">When</span> the checker approves the trade from the trade details page
+  <span class="kw">Then</span> the trade is approved and marked as new             <span class="cm"># closed phrase; column values live in the implementation</span></code></pre>
+  <p>Test reports present this text as-is — a BA can restate what every case verifies without reading code. This is the core payoff of the BDD layer, and the other side of the scale when we later weigh whether it is worth its maintenance risk.</p>
+
+  <h3>Capability parity matrix: everything genie has, plus what it lacks</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Capability</th><th>genie-playwright</th><th>This framework</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3" class="dim"><b>Parity block — everything genie supports, matched line by line</b></td></tr>
+        <tr>
+          <td>Gherkin / BDD test organization</td>
+          <td><span class="chip g">Cucumber-JVM built in</span></td>
+          <td class="ours"><span class="chip g">playwright-bdd</span><span class="note">plus compile-time step checking — see the delta block</span></td>
+        </tr>
+        <tr>
+          <td>POM layering</td>
+          <td><span class="chip g">Supported</span></td>
+          <td class="ours"><span class="chip g">Directory = boundary</span><span class="note">pages/ is the repo's only Locator zone; the boundary is lint-enforceable</span></td>
+        </tr>
+        <tr>
+          <td>Data-driven testing</td>
+          <td><span class="chip g">Supported</span></td>
+          <td class="ours"><span class="chip g">Global YAML index</span><span class="note">caseId in the scenario title — reports trace straight back to business data</span></td>
+        </tr>
+        <tr>
+          <td>Parallel execution</td>
+          <td><span class="chip g">fork JVM</span></td>
+          <td class="ours"><span class="chip g">Worker-level</span><span class="note">no per-process startup/memory cost growing with parallelism — see the delta block</span></td>
+        </tr>
+        <tr>
+          <td>Retry / flaky management</td>
+          <td><span class="chip g">Supported</span></td>
+          <td class="ours"><span class="chip g">Three-tier retry</span><span class="note">global / @retries tag / CLI; documented @flaky quarantine process</span></td>
+        </tr>
+        <tr>
+          <td>Multi-environment switching</td>
+          <td><span class="chip g">Supported</span></td>
+          <td class="ours"><span class="chip g">ENV=* one flag</span><span class="note">secrets injected by CI; process env takes precedence over files</span></td>
+        </tr>
+        <tr>
+          <td>API seeding (test preconditions)</td>
+          <td><span class="chip g">Supported</span></td>
+          <td class="ours"><span class="chip g">Built-in APIRequestContext</span><span class="note">Given ... via api — seeding without a browser, auto-cleanup in After</span></td>
+        </tr>
+        <tr>
+          <td>Database persistence verification</td>
+          <td><span class="chip g">Supported (JDBC ecosystem)</span></td>
+          <td class="ours"><span class="chip g">Dual-channel verification</span><span class="note">API writes preconditions, a read-only PostgreSQL channel verifies persisted state; expect.poll absorbs async persistence lag; one lazy connection per worker</span></td>
+        </tr>
+        <tr>
+          <td>Reporting</td>
+          <td><span class="chip g">genie suite native</span></td>
+          <td class="ours"><span class="chip g">Dual reports</span><span class="note">Playwright HTML (engineers, with traces) + Cucumber HTML (business readers); JUnit XML / Allure can feed internal platforms</span></td>
+        </tr>
+        <tr>
+          <td>Multi-browser</td>
+          <td><span class="chip g">Supported</span></td>
+          <td class="ours"><span class="chip g">chromium / firefox / webkit</span><span class="note">one line of config</span></td>
+        </tr>
+        <tr>
+          <td>Multi-role business flows (maker/checker)</td>
+          <td><span class="chip g">Achievable</span></td>
+          <td class="ours"><span class="chip g">Shipped</span><span class="note">same-session role switching; the full four-eyes approval flow passes across 14 cases</span></td>
+        </tr>
+        <tr><td colspan="3" class="dim"><b>Delta block — capabilities genie lacks that this framework already has</b></td></tr>
+        <tr>
+          <td>Auto-waiting + web-first assertions</td>
+          <td><span class="chip b">Not integrated (verified)</span><span class="note">genie wraps Playwright but exposes its own feature set — engine auto-waiting does not pass through, so waits are hand-written and hand-maintained in test code; comparison 2 in section 03 measures the density</span></td>
+          <td class="ours"><span class="chip g">Engine-level</span><span class="note">actionability checks and auto-retrying assertions ship with the engine — zero explicit sleeps repo-wide, zero waiting code to maintain</span></td>
+        </tr>
+        <tr>
+          <td>Worker-level parallel sharding</td>
+          <td><span class="chip b">None (verified)</span><span class="note">fork JVM only; overhead grows linearly with parallelism</span></td>
+          <td class="ours"><span class="chip g">Runner-native</span><span class="note">plus machine-level sharding in CI (--shard)</span></td>
+        </tr>
+        <tr>
+          <td>UI Mode / watch interactive debugging</td>
+          <td><span class="chip b">None</span><span class="note">a Playwright Test runner capability (Node-only)</span></td>
+          <td class="ours"><span class="chip g">Out of the box</span><span class="note">time-travel step replay — the watershed for debugging cost</span></td>
+        </tr>
+        <tr>
+          <td>Compile-time step vocabulary enforcement</td>
+          <td><span class="chip b">None</span><span class="note">Cucumber-JVM reports undefined steps only at runtime</span></td>
+          <td class="ours"><span class="chip g">bddgen fails at generation</span><span class="note">off-vocabulary wording fails the moment it is written; the vocabulary is tool-enforced</span></td>
+        </tr>
+        <tr>
+          <td>AI test toolchain</td>
+          <td><span class="chip b">No counterpart</span><span class="note">the rules/design layer could be self-built; but the official execution harness ships with Node only, fork-JVM iteration cost penalizes the agent's tight edit-run loop, and a self-healing loop needs a low flake floor — hard to reach when waits are hand-maintained in test code</span></td>
+          <td class="ours"><span class="chip g">Shipped</span><span class="note">a user-story TDD lifecycle (design / implement two-phase skills + 4 custom agents): a business-language acceptance contract before dev delivery, layer-by-layer implementation after — the step registry doubles as the AI's controlled vocabulary menu, and compile-time checking is a free guardrail on AI output</span></td>
+        </tr>
+        <tr>
+          <td>Same-language collaboration with the frontend</td>
+          <td><span class="chip b">Cross-language</span></td>
+          <td class="ours"><span class="chip g">TS isomorphic</span><span class="note">the testid naming grammar is a written contract; frontend engineers can read and contribute to the POM directly</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="tablecap">In the parity block, genie-side capabilities are <b>graded generously</b> based on our knowledge of internal usage — generosity strengthens the conclusion: even if every genie entry stands, this framework still matches line by line; the delta block lists only capabilities that are verified or inherently Node-runner-bound.</p>
+</section>
+
+<!-- ============ Comparison ============ -->
+<section>
+  <div class="eyebrow">02 · Comparison</div>
+  <h2>The real landscape: the company already runs three Playwright stacks</h2>
+  <p>This is not a proposal to introduce Playwright — the company already maintains <b>three</b> Playwright variants: the full genie suite on Java (<code>genie_playwright</code>) — <b>the stack our team uses today</b>; the pytest-based Python stack (Playwright library + pytest + genie report, without the Playwright Test runner); and a <b>TS Playwright + genie report</b> variant. The proposal on the table is to move this team's <b>new</b> E2E work from the Java stack onto the TS base. Two consequences follow: choosing TypeScript here is <b>convergence with an existing internal direction, not a fourth island</b>; and the genie report bridge on the Node side already has an in-company precedent we can reuse. What this framework adds on top of that TS base is the business-language layer, the POM architecture, and the AI toolchain.</p>
+  <p>The comparison axis: <b>the Playwright Test runner exists only on the Node.js side</b> — fixture DI, automatic parallel sharding, UI Mode, watch, component testing, and Test Agents are runner capabilities, not binding capabilities. The Java and Python stacks pair the Playwright browser driver with their own ecosystem's runner.</p>
+
+  <div class="tablewrap">
+    <table class="compare">
+      <colgroup><col><col class="ours"><col><col></colgroup>
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th class="ours">This framework<br>TS + Playwright Test</th>
+          <th>genie-playwright (current stack)<br>Java + genie ecosystem</th>
+          <th>Python<br>pytest + Playwright lib + genie report</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="dim">Waiting model (the stability foundation)</td>
+          <td class="ours"><span class="chip g">Auto-waiting + web-first assertions</span><span class="note">waits for actionability before acting, assertions auto-retry — the #1 flakiness source eliminated at the engine; zero explicit sleeps repo-wide</span></td>
+          <td><span class="chip b">Not integrated</span><span class="note">genie integrates Playwright but not its engine auto-waiting — the wrapper exposes genie's own feature set, so waits are hand-written and hand-maintained per test; comparison 2 measures the resulting explicit-wait density</span></td>
+          <td><span class="chip g">Same as native Playwright</span><span class="note">the Python binding keeps engine auto-waiting</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Test runner and parallelism</td>
+          <td class="ours"><span class="chip g">Official flagship</span><span class="note">fixture DI, auto parallel workers, sharding, retries, traces, HTML report out of the box</span></td>
+          <td><span class="chip w">Cucumber + JUnit</span><span class="note">parallelism by forking JVM processes — startup and memory cost grow linearly with parallelism; no worker-level sharding</span></td>
+          <td><span class="chip w">pytest</span><span class="note">official plugin provides fixtures; parallelism relies on pytest-xdist</span></td>
+        </tr>
+        <tr>
+          <td class="dim">API model</td>
+          <td class="ours"><span class="chip g">async · isomorphic with the frontend</span></td>
+          <td><span class="chip w">sync, blocking</span><span class="note">Playwright instances are not thread-safe; parallelism requires per-process/per-thread instance isolation</span></td>
+          <td><span class="chip n">sync / async dual-track</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Debugging experience</td>
+          <td class="ours"><span class="chip g">UI Mode + trace + watch</span><span class="note">UI Mode / watch are Node-only</span></td>
+          <td><span class="chip n">trace + codegen</span></td>
+          <td><span class="chip n">trace + codegen</span></td>
+        </tr>
+        <tr>
+          <td class="dim">BDD option</td>
+          <td class="ours"><span class="chip w">playwright-bdd (solo-maintained)</span><span class="note">risk and hedging in the next section; also an optional layer</span></td>
+          <td><span class="chip g">Cucumber-JVM (built in)</span><span class="note">SmartBear-maintained, the most mature BDD ecosystem — one of genie's genuine advantages</span></td>
+          <td><span class="chip n">pytest-bdd (community)</span></td>
+        </tr>
+        <tr>
+          <td class="dim">New-feature arrival speed</td>
+          <td class="ours"><span class="chip g">First priority</span><span class="note">UI Mode, component testing, Test Agents all land on Node first</span></td>
+          <td><span class="chip w">Delayed or missing</span></td>
+          <td><span class="chip w">Delayed or missing</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Collaboration with the frontend under test</td>
+          <td class="ours"><span class="chip g">Same language (TS)</span><span class="note">shared testid conventions, types/constants; frontend engineers can read and contribute to the POM</span></td>
+          <td><span class="chip n">Cross-language</span></td>
+          <td><span class="chip n">Cross-language</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Internal platform integration</td>
+          <td class="ours"><span class="chip w">Needs wiring, precedent exists</span><span class="note">emit reports into genie report the way the company's TS + genie report variant already does — a one-off task, not a research project</span></td>
+          <td><span class="chip g">genie suite native</span><span class="note">reports, pipelines, compliance out of the box — the internal option's genuine advantage</span></td>
+          <td><span class="chip g">genie report integrated</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Team skill base</td>
+          <td class="ours"><span class="chip n">Approachable for frontend + QA</span></td>
+          <td><span class="chip g">Existing Java QA skills in-house</span></td>
+          <td><span class="chip n">Friendly to scripting-oriented teams</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Verified assets</td>
+          <td class="ours"><span class="chip g">2,457 LOC · 14 cases passing locally</span></td>
+          <td><span class="chip n">mature ecosystem; this project would model from scratch</span></td>
+          <td><span class="chip b">None for this project</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>A fair verdict on genie-playwright</h3>
+  <p>genie's advantages concentrate on the <b>integration surface</b> (built-in Cucumber-JVM, reports, pipelines, compliance, an internal support team) — partially attainable through standard report formats; its weaknesses concentrate on the <b>engine and runner surface</b> — engine auto-waiting is not integrated, so stability must be piled up with hand-written explicit waits (a per-test maintenance bill, measured by comparison 2); parallelism forks JVMs with linearly growing overhead; and there is no Playwright Test fixtures or trace experience — <b>none of which can be bridged</b>. For a system whose frontend is itself TypeScript, same-language collaboration plus the flagship runner outweighs the ecosystem-migration cost; for Java-dominated projects or teams with no TS skills, genie remains the sensible default.</p>
+
+  <h3>The second decision: how to layer BDD on the Node side</h3>
+  <p>Settling on TypeScript leaves one more choice: plain Playwright (no BDD), Cucumber.js driving Playwright, or playwright-bdd. One thing is <b>not</b> at stake — auto-waiting is an engine capability and survives all three. The real trade is between the runner and Gherkin.</p>
+  <div class="tablewrap">
+    <table class="compare">
+      <colgroup><col><col class="ours"><col><col></colgroup>
+      <thead>
+        <tr>
+          <th>Dimension</th>
+          <th class="ours">playwright-bdd (chosen)</th>
+          <th>Plain Playwright</th>
+          <th>Cucumber.js + Playwright</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="dim">Architecture role</td>
+          <td class="ours"><span class="chip g">Build-time generator</span><span class="note">Gherkin compiles to native Playwright Test specs; at runtime the BDD layer does not exist</span></td>
+          <td><span class="chip n">Runner only</span><span class="note">business readability via <code>test.step</code> titles</span></td>
+          <td><span class="chip n">Cucumber is the runner</span><span class="note">Playwright is driven as a library; browser lifecycle hand-managed in World/hooks</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Playwright Test runner (fixtures DI, dynamic workers, traces, UI Mode, agents)</td>
+          <td class="ours"><span class="chip g">Kept in full</span><span class="note">generated specs are native — everything in this section's comparison applies unchanged</span></td>
+          <td><span class="chip g">Kept in full</span></td>
+          <td><span class="chip b">Lost</span><span class="note">cucumber-js replaces the runner: no fixtures DI, no UI Mode/watch; tracing wired by hand</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Gherkin for business readers</td>
+          <td class="ours"><span class="chip g">Full</span><span class="note">same Gherkin dialect and cucumber-expressions as Cucumber itself</span></td>
+          <td><span class="chip b">None</span><span class="note">engineers-only suite</span></td>
+          <td><span class="chip g">Full</span><span class="note">SmartBear official</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Auto-waiting</td>
+          <td class="ours"><span class="chip g">Engine-level</span></td>
+          <td><span class="chip g">Engine-level</span></td>
+          <td><span class="chip g">Engine-level</span><span class="note">an engine capability — unaffected by this decision</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Step vocabulary enforcement</td>
+          <td class="ours"><span class="chip g">Compile-time</span><span class="note">an off-vocabulary phrase fails <code>bddgen</code> the moment it is written</span></td>
+          <td><span class="chip n">n/a</span><span class="note">no vocabulary layer to enforce</span></td>
+          <td><span class="chip w">Runtime</span><span class="note">undefined steps surface only when the suite runs</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Maintenance of the BDD layer</td>
+          <td class="ours"><span class="chip w">Solo maintainer</span><span class="note">342k weekly installs, ~4× YoY, MIT — the risk section 05 prices and hedges</span></td>
+          <td><span class="chip g">None needed</span></td>
+          <td><span class="chip g">SmartBear official</span><span class="note">2.28M weekly installs</span></td>
+        </tr>
+        <tr>
+          <td class="dim">Distance from this codebase</td>
+          <td class="ours"><span class="chip g">Current choice</span></td>
+          <td><span class="chip g">Rehearsed</span><span class="note">the mirror branch implements the same cases natively — swapping is the measured ~500-line glue</span></td>
+          <td><span class="chip g">Text-compatible</span><span class="note">Gherkin files and step-matching expressions carry over verbatim; only the runner glue changes (same ~500 lines)</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>These three are not three strangers competing — they are <b>one choice and its two exits</b>. playwright-bdd is the only option that keeps both the full runner and Gherkin; its price is the solo-maintainer risk, priced in section 05. Plain Playwright keeps the runner but locks business readers out; Cucumber.js keeps Gherkin but surrenders the very runner that decided the language comparison above. Both alternatives remain reachable from the same ~500-line glue — one lives as a maintained mirror branch, the other shares Gherkin text and expression syntax verbatim — and they are precisely rungs 3 and 4 of the exit ladder in section 05.</p>
+</section>
+
+<!-- ============ Measured evidence ============ -->
+<section>
+  <div class="eyebrow">03 · Measured evidence</div>
+  <h2>Four measurements: the same business case on both frameworks</h2>
+  <p>The previous section compared capabilities; this one speaks in numbers. The collection protocol for all four comparisons is fixed (same business case, same environment); charts drop into the placeholders below once collected — comparisons 1 and 2 directly quantify the everyday cost of the two waiting models and of fork-JVM parallelism.</p>
+
+  <div class="evidence-grid">
+    <div class="evidence">
+      <div class="e-label">Comparison 1 · Speed</div>
+      <h4>Execution time and parallel scaling</h4>
+      <p><b>How</b>: run the same case (trade creation suggested) 5 times each, take the median for a bar chart; then run the whole suite at parallelism 1 / 2 / 4 and plot total duration as lines.</p>
+      <p><b>Why it lands</b>: fork-JVM startup and memory costs grow linearly with parallelism while Node workers stay near-flat — the higher the parallelism, the wider the two lines diverge. One chart tells the story.</p>
+      <div class="figure-slot">Chart slot: per-case bar chart + total-duration lines at parallelism 1/2/4</div>
+    </div>
+    <div class="evidence">
+      <div class="e-label">Comparison 2 · Stability</div>
+      <h4>Explicit-wait density (a proxy for flakiness)</h4>
+      <p><b>How</b>: count explicit wait / sleep calls in the genie implementation of the same case; this framework's count is <b class="num">0</b> (auto-waiting is built into the engine).</p>
+      <p><b>Why it lands</b>: a single-number comparison, no chart needed — every explicit wait is either a future flake (too short) or pure wasted time (too long). Optionally add pass rates over 20 consecutive runs on both sides.</p>
+      <div class="figure-slot">Data slot: genie N explicit waits vs 0 here (optionally 20-run pass rates)</div>
+    </div>
+    <div class="evidence">
+      <div class="e-label">Comparison 3 · Maintenance cost</div>
+      <h4>Lines of code for the same case</h4>
+      <p><b>How</b>: total implementation lines for the same business scenario on both sides (feature + step + page objects), side-by-side screenshots or a bar chart.</p>
+      <p><b>Why it lands</b>: leadership sees with their own eyes what a test case looks like on each side — two side-by-side code screenshots recommended; the Gherkin readability gap needs no commentary.</p>
+      <div class="figure-slot">Chart slot: side-by-side implementation screenshots (or LOC bars)</div>
+    </div>
+    <div class="evidence">
+      <div class="e-label">Comparison 4 · Diagnosis efficiency</div>
+      <h4>The same failure — what each side hands you</h4>
+      <p><b>How</b>: introduce an identical failure (e.g. break one testid) and show the failure artifacts side by side — genie's logs/screenshots vs the Playwright trace viewer (timeline, per-step DOM snapshots, network requests).</p>
+      <p><b>Why it lands</b>: the best of the four for a <b>live demo</b> — the moment the trace viewer opens beats any static image.</p>
+      <div class="figure-slot">Chart slot: failure artifacts side by side (or a live demo)</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROI ============ -->
+<section>
+  <div class="eyebrow">04 · ROI</div>
+  <h2>The investment is sunk; the decision variable is marginal cost</h2>
+  <p class="lede">Framework ROI has three parts: the one-off build cost (<b>already paid</b>), the marginal cost of each new test case (<b>measured, not estimated</b>), and the running maintenance cost (where E2E suites usually die). Every figure below is measured in this repository unless explicitly labelled an estimate.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="s-num">6 <em>days</em></div><div class="s-cap">whole framework, 1 engineer, 55 commits — one-off cost, already sunk (git history)</div></div>
+    <div class="stat"><div class="s-num">2.3&times;</div><div class="s-cap">step reuse today: 34 scenario step references on 15 definitions — rises as the suite grows</div></div>
+    <div class="stat"><div class="s-num">0 <em>new steps</em></div><div class="s-cap">the E2E journey smoke (TRADE-201) — composed entirely from existing vocabulary</div></div>
+    <div class="stat"><div class="s-num">1 <em>YAML block</em></div><div class="s-cap">cost of a same-shape data variant (anchor inheritance) — zero TypeScript</div></div>
+  </div>
+
+  <h3>What one new test case actually costs</h3>
+  <div class="tablewrap">
+    <table>
+    <thead>
+      <tr><th>Case profile</th><th>What gets written</th><th>Cost class</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Existing vocabulary covers it<span class="note">the common case as the suite grows — reuse compounds</span></td>
+        <td>Gherkin lines + one YAML case block</td>
+        <td><b>Minutes.</b> No TypeScript touched; <code>bddgen export</code> is the menu.</td>
+      </tr>
+      <tr>
+        <td>Needs a new step over existing page objects</td>
+        <td>+ one thin glue line per step (a call into flows/pages)</td>
+        <td><b>Small.</b> The compile gate lists exactly which phrases are missing — the worklist writes itself.</td>
+      </tr>
+      <tr>
+        <td>Opens a brand-new page or module</td>
+        <td>+ page-object modelling (scaffolded by <code>/new-module</code>)</td>
+        <td><b>Real hours — once per page, never per case.</b> Every framework pays this tier; only this one amortizes it through the two tiers above.</td>
+      </tr>
+    </tbody>
+    </table>
+  </div>
+
+  <h3>Where the time comes back</h3>
+  <ul>
+    <li><b>Maintenance</b> — the waiting layer is engine-native and officially maintained: a whole class of sleep-tuning flakiness never enters the codebase, whereas on the current Java stack every wait is hand-written and hand-maintained, one test at a time (sections 02–03); the trace viewer turns "cannot reproduce" into a recording with per-step DOM snapshots, so triage becomes watching a replay instead of re-running.</li>
+    <li><b>Shift-left (the biggest lever)</b> — the story TDD toolchain drafts BDD features from the user story <b>before development starts</b>; QA's role moves from authoring from scratch to reviewing a draft. Same headcount, earlier coverage — and it runs natively on the Node toolchain today.</li>
+    <li><b>Execution</b> — dynamic per-test scheduling plus browser reuse means regression wall-time scales down with worker count, without paying a JVM warm-up per fork (section 02).</li>
+  </ul>
+  <p class="tablecap">The levers are stated qualitatively on purpose — the numbers get back-filled from the first real iteration, the same treatment as the four placeholders in section 03. We would rather show two measured numbers later than four invented ones today.</p>
+
+  <h3>The honest cost side — what we are not counting as free</h3>
+  <ul>
+    <li><b>Learning curve (estimate)</b> — case authors never touch TypeScript: adding cases is Gherkin plus YAML. Framework maintainers do; for a Java-background engineer, expect 1–2 weeks to productivity (estimate, labelled as such).</li>
+    <li><b>The legacy suite</b> — no big-bang migration is proposed. New modules start here; the existing Java suite keeps running and migrates per module only when touched. The migration bill is paid in instalments, and each instalment is optional.</li>
+    <li><b>AI review time</b> — generated designs are not free coverage: every draft passes a human gate (the AC coverage table) before implementation. Review time is a real cost — it is simply smaller than authoring from scratch.</li>
+  </ul>
+</section>
+
+<!-- ============ Risk ============ -->
+<section>
+  <div class="eyebrow">05 · Risk deep-dive</div>
+  <h2>playwright-bdd is solo-maintained — what if it goes unmaintained?</h2>
+  <p class="lede">Answering head-on: the risk is real. We did not sidestep it — we <b>architected it away</b>: the coupling surface is squeezed to 21%, and the exit path is not a paper plan but a continuously maintained mirror branch.</p>
+
+  <h3>The facts first</h3>
+  <ul>
+    <li>playwright-bdd is built by a single core maintainer (active community, iterated to 9.x) and is a <b>build-time code generator</b>: <code>bddgen</code> compiles <code>.feature</code> files into standard Playwright Test specs — <b>it does not exist at runtime</b>; what runs is pure Playwright tests.</li>
+    <li><b>Adoption (measured 2026-07, npm registry)</b>: <b class="num">342k</b> installs per week, roughly <b>4×</b> year-over-year growth; 3 releases in the last six weeks (9.0.0 → 9.2.0). Already 15% of cucumber-js volume — a project on the way up, not on the brink of abandonment. (Caveat: weekly downloads are dominated by CI reinstalls — a scale proxy, not a user count.)</li>
+    <li>It is a devDependency: with pinned versions alongside a pinned Playwright major, it runs stably for years. The real risk window requires two conditions at once: "Playwright ships a breaking major" × "playwright-bdd is already unmaintained".</li>
+    <li>MIT-licensed, and small enough to fork and self-maintain — the intermediate rung before any exit: our usage surface is just 8 items, and a build-time tool fails loudly (compilation breaks immediately; no silent runtime corruption), which keeps self-maintenance risk contained.</li>
+  </ul>
+
+  <h3>The dependency surface in one picture</h3>
+  <div class="depbar">
+    <div class="bar"><div class="seg-a"></div><div class="seg-b"></div></div>
+    <div class="legend">
+      <span><span class="dot" style="background: var(--good)"></span>Framework-agnostic (POM / API / data / config) — <b class="num">1,946 LOC · 79%</b></span>
+      <span><span class="dot" style="background: var(--warn)"></span>playwright-bdd coupling surface (features / steps / fixtures) — <b class="num">511 LOC · 21%</b></span>
+    </div>
+  </div>
+  <p>Only 8 files in the whole repo import playwright-bdd, all in the wiring layer. The page models, business flows, data index, and API seeding that carry the real complexity — nearly 80% of the code — do not know the BDD layer exists.</p>
+
+  <h3>Three hedges, escalating</h3>
+  <div class="ladder">
+    <div class="rung">
+      <h4>Pin versions and keep going (zero cost)</h4>
+      <p>An unmaintained build-time tool does not stop existing versions from working. As long as we do not chase Playwright majors aggressively, the status quo runs for years.</p>
+    </div>
+    <div class="rung">
+      <h4>Thin coupling by architecture (already built in)</h4>
+      <p>The steps layer is deliberately constrained to "phrase → flow call" wiring with no logic; all assertions and actions live in the POM/flows layers. Replacing the BDD layer touches no business modeling code.</p>
+    </div>
+    <div class="rung">
+      <h4>A field-tested exit path (already rehearsed)</h4>
+      <p>The repo maintains a <code>feature/plain-playwright</code> mirror branch: the same POM / data / API layers implementing the same cases with native <code>test.step</code>. The migration cost is not an estimate — it was measured by doing it once: what gets rewritten is that ~500-line wiring layer.</p>
+    </div>
+  </div>
+
+  <h3>Migration cost breakdown (if the exit is triggered)</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Layer</th><th>Size</th><th>Migration action</th></tr></thead>
+      <tbody>
+        <tr><td class="dim">test/features/</td><td class="num">118 LOC</td><td>rewrite as spec <code>test()</code> titles + <code>test.step</code> steps (the mirror branch already implements this)</td></tr>
+        <tr><td class="dim">test/steps/</td><td class="num">214 LOC</td><td>fold into specs or lift into shared helpers (the mirror branch already implements this)</td></tr>
+        <tr><td class="dim">fixtures/</td><td class="num">179 LOC</td><td>drop the <code>createBdd</code> wrapper; <code>test.extend</code> stays as-is — single-digit lines change</td></tr>
+        <tr><td class="dim">pages + flows + api + data + config</td><td class="num">1,946 LOC</td><td><b>zero changes</b></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>What is lost is the Gherkin layer of business-readable text (reports degrade to <code>test.step</code> titles); the business vocabulary itself is shared across branches and survives. The alternative — Cucumber.js (SmartBear's official JS implementation) — would preserve Gherkin but abandon the Playwright Test runner, which is precisely why we chose this stack; hence it ranks last.</p>
+</section>
+
+<!-- ============ Next steps ============ -->
+<section>
+  <div class="eyebrow">06 · Decision and next steps</div>
+  <h2>What we ask you to confirm, and the rollout rhythm</h2>
+  <ol>
+    <li><b>Confirm the selection</b>: Trade Portal E2E adopts this framework (TS + Playwright Test + a thin playwright-bdd layer); genie-playwright remains the default for Java-side projects.</li>
+    <li><b>Test environment and CI</b>: everything passes locally; next, connect the shared test environment and enable runner-native parallel sharding in CI, with the <code>@flaky</code> quarantine kept out of the main gate.</li>
+    <li><b>Report bridging</b>: emit output into genie report the way the company's existing TS + genie report variant already does, closing the integration gap with the genie ecosystem — a reuse task, not a research one.</li>
+    <li><b>ADO integration</b>: swap caseIds (<code>TRADE-001</code>-style) mechanically for work item IDs as designed — two-way traceability between cases and requirements.</li>
+    <li><b>Measured evidence</b>: produce the four comparison charts under the fixed protocol in section 03 and replace the placeholders.</li>
+    <li><b>Keep the insurance</b>: sync the <code>plain-playwright</code> mirror branch at low frequency as the standing exit path for the BDD layer.</li>
+  </ol>
+</section>
+
+<div class="footnote">
+  Data basis: line counts and the dependency surface are measured from the repo's current mainline (test/ and the code directories, excluding generated output and node_modules); all 14 cases pass in local browser runs. genie-playwright's key characteristics (Cucumber + JUnit, fork-JVM parallelism, auto-waiting not integrated by the wrapper) are verified against actual internal usage.
+</div>
+
+</div>
