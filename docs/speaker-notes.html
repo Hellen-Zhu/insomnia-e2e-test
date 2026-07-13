@@ -251,6 +251,12 @@
     <div class="strategy">这题是 Q3 的 agent 版本。主动承认"可以自建"，可信度反而上升——对照表里 genie 那格的备注就是这么写的，口径一致。</div>
   </div>
 
+  <div class="qa">
+    <div class="q">Q3c · Python 版 Playwright 呢？浏览器驱动不是官方的吗？<span class="prob mid">可能</span></div>
+    <p class="a">"浏览器驱动确实是官方的，但运行器不是——这是 Python 版和 TS 版最本质的差距。Python 版依赖 pytest 做测试运行器，pytest 很强大，但它是一个通用的第三方测试框架，跟 Playwright 是松耦合关系，功能靠插件拼。TS 版用的是 @playwright/test，Playwright 团队自己维护的原生运行器，这带来三层差距：配置上，一个 <code>playwright.config.ts</code> 文件就能管住浏览器、超时、重试、报告，pytest 侧要靠多个插件配合；功能上，分片并行、worker fixture、UI Mode 这些深度能力只有 TS 版有；版本节奏上，Playwright 出新功能，<code>@playwright/test</code> 第一时间跟上，pytest-playwright 插件永远慢半拍。IDE 集成上差距更直观：Playwright 官方 VS Code 插件只支持 TypeScript/JavaScript——测试侧边栏 Test Explorer 点一下就跑用例、打断点单步调试看变量、Codegen 点哪录哪自动生成脚本、Copilot 在 Playwright 上下文里推荐定位器和断言；Python 版在 VS Code 里只有基础语法高亮和补全，这些深度集成一样都没有。三个版本摆在一起规律是一致的：<b>越靠近 Playwright 官方核心，TS 侧拿到的东西越完整。</b>"</p>
+    <div class="strategy">这题不必主动提，被问到再答——Python 不是今天决策的对手（决策是 Java 迁 TS），主动讲太多显得在贬另一个团队的技术选型。收尾那句"越靠近官方核心，TS 拿到的越完整"和 Q1c"靠拢公司已有 TS 方向"是同一个逻辑，可以顺手接回去。</div>
+  </div>
+
 
   <div class="qa">
     <div class="q">Q4 · 跑过真机吗？效果如何？<span class="prob mid">可能</span></div>
@@ -261,7 +267,7 @@
   <div class="qa">
     <div class="q">Q5 · 谁来维护？团队都是 Java 背景怎么办？<span class="prob mid">可能</span></div>
     <p class="a">"框架把维护成本压在纪律上：Locator 只允许出现在 POM 层且有收口规则、业务措辞有六条规范约束、数据全走 YAML——写用例的人接触的表面积很小。TS 对 Java 背景的 QA 语法迁移成本不高，真正要学的是 Playwright 本身，这个成本三个方案是一样的——而且 genie 那套显式等待的写法学起来并不比 auto-wait 简单。"</p>
-    <div class="strategy">需要你自备：团队里谁接、占多少人力（见第五节清单）。</div>
+    <div class="strategy">需要你自备：团队里谁接、占多少人力（见第六节清单）。</div>
   </div>
 
   <div class="qa">
@@ -288,13 +294,77 @@
   <div class="qa">
     <div class="q">Q10 · 多久能覆盖核心回归？<span class="prob mid">可能</span></div>
     <p class="a">"建模成本已经量化：trade portal 91 条元素收敛成 28 个文件；复用已有步骤时新增一条用例就是几行 Gherkin。核心回归清单有 N 条，按此估算约 X 周。"</p>
-    <div class="strategy">N 和 X 需要你会前定好（见第五节清单）——这题不能现场即兴。</div>
+    <div class="strategy">N 和 X 需要你会前定好（见第六节清单）——这题不能现场即兴。</div>
   </div>
 </section>
 
 <!-- ============ 自备 ============ -->
 <section>
-  <div class="eyebrow">五 · 会前清单</div>
+  <div class="eyebrow">五 · Demo 动线</div>
+  <h2>六步动线：每个动作只证明一个论断</h2>
+  <p>Demo 的结构原则：<b>先照读论断，再动手，动完收一句</b>——展示的不是功能，是汇报里各节论断的证据。全程 5–7 分钟，顺序即叙事：读用例 → 跑用例 → 看报告 → 看失败 → 看 AI → 收场。</p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>步</th><th>论断（先照读）</th><th>动作</th><th>收束句</th><th>兜底</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="k">0 · 开场<br><span class="num">30s</span></td>
+          <td>"接下来五分钟，所有东西都是这个仓库里的真实代码，不是录屏。"</td>
+          <td>VS Code 打开仓库，目录树停在根目录——和汇报页架构图对上</td>
+          <td>"目录就是汇报里那张分层图。"</td>
+          <td>纯静态，不会失败</td>
+        </tr>
+        <tr>
+          <td class="k">1 · 读用例<br><span class="num">1 min</span></td>
+          <td>"BA 不看代码能复述这条用例在验证什么。"</td>
+          <td>打开 trade-approval.feature 照读三行；点开同 caseId 的 YAML 数据块</td>
+          <td>"报告里呈现的就是这段文本，用例和数据靠 caseId 对齐。"</td>
+          <td>纯静态，不会失败</td>
+        </tr>
+        <tr>
+          <td class="k">2 · 跑用例<br><span class="num">2 min</span></td>
+          <td>"全仓零处显式等待，并行是 runner 原生的。"</td>
+          <td><code>npm run test:smoke</code>；等待时指终端讲 worker 数和自动等待</td>
+          <td>"X 条通过，用时 Y 秒——没有一行 sleep。"</td>
+          <td>预跑好的终端输出/上一份报告</td>
+        </tr>
+        <tr>
+          <td class="k">3 · 看报告<br><span class="num">1 min</span></td>
+          <td>"一次运行出两份报告：工程师一份，业务一份。"</td>
+          <td>打开 Playwright HTML report，再切 Cucumber HTML</td>
+          <td>"BA 看到的就是刚才读的那段业务语言。"</td>
+          <td>报告本来就是预生成的</td>
+        </tr>
+        <tr>
+          <td class="k">4 · 看失败<br><span class="num">2 min</span></td>
+          <td>"失败不是一行报错，是可以回放的现场。"（全场最强瞬间）</td>
+          <td>切到后台预开的 trace viewer（预生成的失败 trace）；拖时间轴，点一步看 DOM 快照 + 网络请求</td>
+          <td>"排障从'找人复现半天'变成'看五分钟回放'。"</td>
+          <td>trace 预生成即兜底；再退一步用汇报页静态图</td>
+        </tr>
+        <tr>
+          <td class="k">5 · 看 AI<br><span class="num">1 min</span></td>
+          <td>"AI 工装链不是概念，是仓库里的文件。"</td>
+          <td><code>ls .claude/agents .claude/skills</code>；打开 bdd-designer 定义或 specs/ 里一个移交包</td>
+          <td>"story 还没开发，用例草稿已经能出来——QA 从从零写变成 review。"</td>
+          <td>cat 文件不会失败</td>
+        </tr>
+        <tr>
+          <td class="k">6 · 收场<br><span class="num">30s</span></td>
+          <td>——</td>
+          <td>切回汇报页"下一步"章节</td>
+          <td>"demo 每一步对应汇报里的一节论断，可以回头对。今天请您确认的只有选型这一条。"</td>
+          <td>——</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="strategy"><b>顺序可裁不可乱。</b>时间被压缩就从后往前砍：先砍 5（AI 留给 Q&amp;A 被问时再掏），再砍 3（报告一句话带过）。<b>1 · 2 · 4 是最小可行 demo</b>——读用例、跑用例、看失败，三步就撑得起全部核心论断。</div>
+  <div class="strategy"><b>任何一步出岔子，念兜底句切静态备份，绝不现场排查。</b>台词："这个环境问题我会后看，先看预跑好的结果。"现场排查两分钟造成的伤害大于 demo 全砍。开始前：终端字号调大、系统通知关闭、无关标签页关掉。两种用法里推荐<b>集中式</b>（讲完"下一步"后完整走一遍，叙事不断）；若嵌入式，只保留第 4 步嵌在实测对比节。</div>
+</section>
+
+<section>
+  <div class="eyebrow">六 · 会前清单</div>
   <h2>需要你自备的弹药</h2>
   <ul class="check">
     <li><b>实测对比四组数据</b>：按文档第 03 节的固定口径跑出图表替换占位（对比 1 速度、对比 2 显式等待密度、对比 3 代码量、对比 4 失败产物）。最少先出 2——一个数字就能讲。</li>
@@ -307,7 +377,7 @@
 </section>
 
 <div class="footnote">
-  本页为讲稿自用，含应答策略，不随汇报文档分发。汇报文档：docs/framework-selection.html（仓库）/ claude.ai artifact 链接。
+  本页为讲稿自用，含应答策略，不随汇报文档分发。汇报文档：docs/framework-selection.en.html（仓库，英文正本）/ claude.ai artifact 链接。
 </div>
 
 </div>
